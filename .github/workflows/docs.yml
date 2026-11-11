@@ -1,0 +1,28 @@
+name: Printable guides
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - 'README*.md'
+      - 'scripts/build_docs.py'
+      - 'requirements-docs.txt'
+      - '.github/workflows/docs.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install -r requirements-docs.txt
+      - run: make docs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: printable-guides-en-fr
+          path: docs/print/
+          if-no-files-found: error
