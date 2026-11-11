@@ -1,0 +1,19 @@
+# Local server data and personal settings
+.env
+family-settings.json
+compose.allowlist.json
+compose.game.json
+data/
+backups/
+logs/
+.state/
+data-avant-restauration-*/
+data-before-restore-*/
+# Generated printable guides
+docs/print/
+# Local development files
+.venv*/
+__pycache__/
+*.py[cod]
+*.partial
+.DS_Store

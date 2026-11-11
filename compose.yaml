@@ -1,0 +1,37 @@
+name: minecraft-bedrock-family
+services:
+  bedrock:
+    image: itzg/minecraft-bedrock-server:latest
+    restart: unless-stopped
+    environment:
+      EULA: "${EULA:-FALSE}"
+      VERSION: "${BEDROCK_VERSION:-LATEST}"
+      TZ: "${SERVER_TIMEZONE:-Etc/UTC}"
+      SERVER_NAME: "Minecraft Family"
+      LEVEL_NAME: "Family"
+      GAMEMODE: "survival"
+      DIFFICULTY: "easy"
+      ALLOW_CHEATS: "true"
+      MAX_PLAYERS: "8"
+      ONLINE_MODE: "true"
+      ALLOW_LIST: "false"
+      DEFAULT_PLAYER_PERMISSION_LEVEL: "member"
+      VIEW_DISTANCE: "12"
+      TICK_DISTANCE: "4"
+      PLAYER_IDLE_TIMEOUT: "30"
+      TRANSPORT: "nethernet"
+      SERVER_PORT: "19132"
+      SERVER_UDP_PORTS: "${LAN_IP:?Run make setup}:19140-19155:19140-19155"
+    ports:
+      - "${LAN_IP:?Run make setup}:19132:19132/tcp"
+      - "${LAN_IP:?Run make setup}:19140-19155:19140-19155/udp"
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true
+    stop_grace_period: 2m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

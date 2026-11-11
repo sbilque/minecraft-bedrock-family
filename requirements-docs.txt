@@ -1,0 +1,2 @@
+# Optional: printable documentation only; not needed to run the server.
+reportlab>=4.2,<5

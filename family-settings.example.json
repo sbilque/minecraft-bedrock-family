@@ -1,0 +1,10 @@
+{
+  "stop_at": "19:00",
+  "game": {
+    "cheats": true,
+    "keep_inventory": true,
+    "difficulty": "easy",
+    "sleep_percent": 0,
+    "gamemode": "survival"
+  }
+}
