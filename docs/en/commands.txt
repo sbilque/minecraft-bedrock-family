@@ -1,0 +1,148 @@
+MINECRAFT BEDROCK FAMILY
+
+In Terminal: cd ~/minecraft-bedrock-family
+Players: Minecraft Bedrock on iOS or Windows 10/11, on the same local network.
+
+INSTALL
+  make setup LAN_IP=192.168.1.50 EULA=TRUE
+    Use the Mac's local address. Read and accept Minecraft terms first.
+  make check
+    Check settings and Docker.
+
+FINISHING TIME
+  make session
+    Start today's game with the usual finishing time.
+  make session STOP_AT=21:00
+    Choose a different time for this game only.
+  make session-status
+    Check the timer.
+  make session-cancel
+    Cancel the timer without stopping.
+  make session-stop
+    Stop now and back up. Leave the server off.
+  make session-logs
+    Read shutdown and backup messages.
+  make session-default TIME=20:30
+    Save the usual finishing time.
+  make session-default-show
+    Show the usual time.
+  make session-default-reset
+    Return to 19:00.
+
+GAME RULES
+  make cheats VALUE=on
+    Enable cheats; VALUE=off disables them. Cheats disable achievements.
+  make keep-inventory VALUE=on
+    Keep inventory after death; VALUE=off disables this.
+  make difficulty LEVEL=easy
+    Choices: peaceful, easy, normal, hard. French names also work.
+  make sleep PERCENT=50
+    Choose a percentage from 0 to 100. Even 0 needs one player in bed.
+  make sleep-one
+    One player in bed is enough.
+  make gamemode MODE=survival
+    Default mode: survival, creative or adventure. French names also work.
+  make gamemode-all MODE=creative
+    Change connected players only, without changing the default.
+  make game-show
+    Show saved game choices, not live measurements.
+  make game-apply
+    Start and apply saved choices.
+  make game-defaults
+    Reset only the game choices: cheats on, keep inventory on, easy, one sleeper, survival.
+
+PLAY
+  make up
+    Start without adding a timer.
+  make start
+    Same as make up.
+  make stop
+    Cancel the timer and stop without a backup.
+  make restart
+    Restart. Keep an existing timer.
+  make status
+    See whether the server is running.
+
+PLAYERS
+  make console CMD="say Five minutes left"
+    Send a message or command. Keep the quotes.
+  make players
+    Show who is connected.
+  make xuids
+    Find player account numbers in retained connection messages.
+  make allowlist-preview
+    Show current players without changing the list.
+  make allowlist-sync
+    Add current players; keep enrolled absent players.
+  make allowlist-show
+    Show all enrolled players.
+  make allowlist-enable
+    Restrict admission to enrolled players. May interrupt play.
+  make allowlist-disable CONFIRM=yes
+    Open admission temporarily. Close it again promptly.
+  make allowlist-remove PLAYER="Player Name"
+    Remove an exact name or XUID; keep their builds.
+  make allowlist-edit
+    Open the list for manual editing.
+  make allowlist-reload
+    Check and import the edited list, including removals.
+
+BACKUPS
+  make backup
+    Back up, then restore the initial running/stopped state.
+  make backups
+    List complete archives.
+  make restore FILE="backups/name.tar.gz" CONFIRM=yes
+    Restore the world; keep current settings and player access.
+  make open-backups
+    Open the backup folder.
+
+MAINTENANCE
+  make config
+    Check saved settings.
+  make apply
+    Apply changed settings. May interrupt play.
+  make down
+    Cancel the timer and remove containers; keep the world.
+  make open-data
+    Open the world folder. Do not delete data.
+  make edit
+    Open server settings.
+  make edit-env
+    Open the saved address and version choice.
+  make pull
+    Download the image only; do not replace the running server.
+  make update
+    Cancel the timer, back up and update using the saved version choice.
+  make update-server
+    Cancel the timer, back up and download a newer Bedrock server. Test player connections afterwards.
+  make version-pin
+    Keep the installed Bedrock version on future starts.
+
+HELP
+  make
+    Show all commands. Use LANGUAGE=fr for French help.
+  make docker-start
+    Open Docker Desktop and wait.
+  make doctor
+    Check Docker and Python.
+  make logs
+    Follow messages. Ctrl+C exits the display, not the server.
+  make logs-once
+    Show recent messages.
+
+CHECKS
+  make test
+    Run offline tests, without a real Docker engine.
+  make lint
+    Check Python syntax and Make commands.
+  make verify
+    Run both checks.
+
+DOCUMENTS
+  make docs
+    Build optional PDFs; see docs/en/printing.md.
+
+Cheats are on by default and disable world achievements.
+Sleep at 0 percent still needs one player in bed.
+Warnings: 15 min, 5 min, 1 min, 30 s. Keep the Mac and Docker running.

@@ -1,0 +1,148 @@
+MINECRAFT EN FAMILLE
+
+Dans Terminal : cd ~/minecraft-bedrock-family
+Joueurs : Minecraft Bedrock sur iOS ou Windows 10/11, sur le meme reseau local.
+
+INSTALLATION
+  make setup LAN_IP=192.168.1.50 EULA=TRUE
+    Configurer avec l’adresse du Mac et accepter les conditions Minecraft.
+  make check
+    Vérifier les réglages et Docker.
+
+HORAIRE
+  make session
+    Démarrer avec fin à l’heure habituelle aujourd’hui.
+  make session STOP_AT=21:00
+    Une exception pour cette partie, sans changer l’habitude.
+  make session-status
+    Vérifier l’horaire et sa surveillance.
+  make session-cancel
+    Annuler l’horaire sans couper le serveur.
+  make session-stop
+    Arrêter maintenant, sauvegarder et rester éteint.
+  make session-logs
+    Lire les messages de la fermeture.
+  make session-default TIME=20:30
+    Mémoriser l’heure habituelle.
+  make session-default-show
+    Voir l’heure habituelle.
+  make session-default-reset
+    Revenir à 19 h.
+
+REGLAGES DE JEU
+  make cheats VALUE=on
+    Activer la triche ; off pour désactiver.
+  make keep-inventory VALUE=on
+    Conserver l’inventaire ; off pour désactiver.
+  make difficulty LEVEL=facile
+    paisible, facile, normale, difficile.
+  make sleep PERCENT=50
+    Pourcentage de joueurs au lit : 0 à 100.
+  make sleep-one
+    Un joueur au lit suffit (0 %).
+  make gamemode MODE=survie
+    Mode par défaut : survie, creatif, aventure.
+  make gamemode-all MODE=creatif
+    Changer les joueurs présents seulement.
+  make game-show
+    Voir les cinq choix mémorisés.
+  make game-apply
+    Démarrer et appliquer les choix.
+  make game-defaults
+    Triche oui, inventaire oui, facile, un joueur dort, survie.
+
+JOUER
+  make up
+    Démarrer sans ajouter d’horaire.
+  make start
+    Autre nom de make up.
+  make stop
+    Annuler l’horaire et arrêter, sans sauvegarde.
+  make restart
+    Relancer ; l’horaire reste actif.
+  make status
+    Voir l’état du serveur.
+
+JOUEURS
+  make console CMD="say On arrete dans 5 minutes"
+    Envoyer un message à tous.
+  make players
+    Voir qui joue.
+  make xuids
+    Retrouver les identifiants dans les messages conservés.
+  make allowlist-preview
+    Voir les présents sans modifier.
+  make allowlist-sync
+    Les inscrire sans retirer les absents déjà autorisés.
+  make allowlist-show
+    Voir les personnes inscrites.
+  make allowlist-enable
+    Réserver les entrées aux inscrits.
+  make allowlist-disable CONFIRM=yes
+    Ouvrir temporairement les entrées.
+  make allowlist-remove PLAYER="Nom du joueur"
+    Retirer ce nom ou ce XUID sans effacer ses constructions.
+  make allowlist-edit
+    Ouvrir la liste à modifier à la main.
+  make allowlist-reload
+    Vérifier et conserver la liste éditée.
+
+SAUVEGARDES
+  make backup
+    Sauvegarder puis revenir à l’état allumé/arrêté initial.
+  make backups
+    Lister les archives complètes.
+  make restore FILE="backups/nom.tar.gz" CONFIRM=yes
+    Restaurer le monde, conserver réglages et accès actuels.
+  make open-backups
+    Ouvrir les sauvegardes.
+
+ENTRETIEN
+  make config
+    Valider les réglages.
+  make apply
+    Appliquer les changements ; coupure possible.
+  make down
+    Annuler l’horaire et retirer les conteneurs ; conserver le monde.
+  make open-data
+    Ouvrir le monde ; ne pas effacer data.
+  make edit
+    Ouvrir les réglages du serveur.
+  make edit-env
+    Ouvrir l’adresse et le choix de version.
+  make pull
+    Télécharger seulement l’image.
+  make update
+    Sauvegarder puis actualiser selon le choix de version.
+  make update-server
+    Sauvegarder, mettre Bedrock à jour et conserver la version téléchargée.
+  make version-pin
+    Garder la version Bedrock installée aux prochains démarrages.
+
+AIDE
+  make
+    Afficher toute l’aide.
+  make docker-start
+    Ouvrir Docker et attendre son démarrage.
+  make doctor
+    Vérifier Docker et Python.
+  make logs
+    Suivre les messages ; Ctrl+C quitte l’affichage.
+  make logs-once
+    Voir les derniers messages.
+
+VERIFICATION
+  make test
+    Lancer les tests unitaires, sans Docker.
+  make lint
+    Contrôler la syntaxe Python et les commandes Make.
+  make verify
+    Effectuer les deux contrôles.
+
+Triche activee par defaut : les succes de ce monde sont desactives.
+0 % de sommeil : au moins un joueur doit etre au lit.
+Rappels : 15 min, 5 min, 1 min, 30 s. Garder le Mac et Docker allumes.
+
+DOCUMENTS
+  make docs
+    Fabriquer les PDF facultatifs ; voir docs/fr/printing.md.
