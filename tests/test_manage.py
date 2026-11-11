@@ -1,0 +1,325 @@
+"""Tests locaux : bibliotheque standard, aucun moteur Docker ou reseau."""
+import contextlib
+import datetime as dt
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import types
+import unittest
+from unittest import mock
+
+PACKAGE=Path(__file__).resolve().parents[1]
+REAL_ENV=dict(os.environ)
+spec=importlib.util.spec_from_file_location('family_manage',PACKAGE/'scripts'/'manage.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+
+class LocalTests(unittest.TestCase):
+    def setUp(self):
+        temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup);self.root=Path(temp.name)
+        patch=mock.patch.object(m,'ROOT',self.root);patch.start();self.addCleanup(patch.stop)
+        patch=mock.patch.dict(os.environ,{},clear=True);patch.start();self.addCleanup(patch.stop)
+        capture=contextlib.redirect_stdout(io.StringIO());capture.__enter__();self.addCleanup(capture.__exit__,None,None,None)
+    def seed(self):
+        (self.root/'data').mkdir(exist_ok=True)
+        (self.root/'.env').write_text('LAN_IP=192.168.1.50\nEULA=TRUE\nBEDROCK_VERSION=LATEST\n')
+        (self.root/'compose.yaml').write_text('services: {}\n')
+    def test_boolean(self):
+        for value in ['on','oui','TRUE','1','activé']:self.assertTrue(m.boolean(value))
+        for value in ['off','non','FALSE','0','désactivé']:self.assertFalse(m.boolean(value))
+        with self.assertRaises(RuntimeError):m.boolean('maybe')
+    def test_difficulty(self):
+        for name,result in [('facile','easy'),('paisible','peaceful'),('normale','normal'),('difficile','hard')]:self.assertEqual(m.difficulty(name),result)
+        with self.assertRaises(RuntimeError):m.difficulty('invalid')
+    def test_gamemode(self):
+        self.assertEqual(m.gamemode('créatif'),'creative');self.assertEqual(m.gamemode('aventure'),'adventure')
+        with self.assertRaises(RuntimeError):m.gamemode('spectateur')
+    def test_percent_bounds(self):
+        self.assertEqual(m.percentage('0'),0);self.assertEqual(m.percentage('100'),100)
+        for value in ['-1','101','50%','1.5','True','']:
+            with self.subTest(value=value),self.assertRaises(RuntimeError):m.percentage(value)
+    def test_clock_format(self):
+        self.assertEqual(m.clock('00:00'),'00:00');self.assertEqual(m.clock('23:59'),'23:59')
+        for value in ['24:00','19:60','9:00','19h00','']:
+            with self.subTest(value=value),self.assertRaises(RuntimeError):m.clock(value)
+    def test_deadline_future_and_past(self):
+        now=dt.datetime(2030,1,1,16,0,tzinfo=dt.timezone.utc)
+        self.assertEqual(m.deadline('19:00',now).hour,19)
+        for value in ['15:00','16:00']:
+            with self.assertRaises(RuntimeError):m.deadline(value,now)
+    def test_ipv4(self):
+        self.assertEqual(m.ipv4('192.168.1.50'),'192.168.1.50')
+        for value in ['127.0.0.1','0.0.0.0','224.0.0.1','abc','::1']:
+            with self.assertRaises(RuntimeError):m.ipv4(value)
+    def test_family_defaults(self):
+        cfg=m.settings();self.assertEqual(cfg['stop_at'],'19:00')
+        self.assertEqual(cfg['game'],{'cheats':True,'keep_inventory':True,'difficulty':'easy','sleep_percent':0,'gamemode':'survival'})
+    def test_setting_updates_do_not_reset_other_choices(self):
+        cfg=dict(m.GAME_DEFAULTS);cfg['cheats']=False;cfg['sleep_percent']=50
+        m.update_settings(game=cfg);m.update_settings(stop_at='20:30')
+        self.assertEqual(m.settings()['game'],cfg)
+        cfg['difficulty']='hard';m.update_settings(game=cfg)
+        self.assertEqual(m.settings()['stop_at'],'20:30')
+    def test_old_time_only_settings_are_read(self):
+        m.atomic(self.root/'family-settings.json',{'stop_at':'20:00'})
+        self.assertEqual(m.settings()['game'],m.GAME_DEFAULTS)
+    def test_separate_existing_game_choices_are_preserved(self):
+        m.atomic(self.root/'family-settings.json',{'stop_at':'20:00'})
+        m.atomic(self.root/'game-settings.json',{'cheats':False,'difficulty':'hard'})
+        self.assertFalse(m.settings()['game']['cheats'])
+        self.assertEqual(m.settings()['game']['difficulty'],'hard')
+        m.update_settings(stop_at='21:00')
+        self.assertFalse(m.load(self.root/'family-settings.json')['game']['cheats'])
+    def test_invalid_game_settings(self):
+        for value in [{'cheats':'yes'},{'sleep_percent':True},{'sleep_percent':101},{'gamemode':'invalid'}]:
+            with self.assertRaises(RuntimeError):m.validate_game(value)
+    def test_atomic_writes_no_temporary_file_left(self):
+        m.atomic(self.root/'data'/'test.json',{'a':1})
+        self.assertEqual(m.load(self.root/'data'/'test.json'),{'a':1})
+        self.assertFalse(list(self.root.rglob('*.tmp-*')))
+    def test_env_update_preserves_other_values(self):
+        (self.root/'.env').write_text('# note\nLAN_IP=192.168.1.2\nEULA=TRUE\nBEDROCK_VERSION=EXISTING\n')
+        m.env_update({'LAN_IP':'192.168.1.50'})
+        self.assertEqual(m.env_read()['BEDROCK_VERSION'],'EXISTING')
+        self.assertIn('# note',(self.root/'.env').read_text())
+    def test_setup_is_local_and_preserves_version(self):
+        self.seed();m.env_update({'BEDROCK_VERSION':'EXISTING'})
+        os.environ.update(LAN_IP='192.168.1.70',EULA='TRUE')
+        with mock.patch.object(m,'docker_start',side_effect=AssertionError('Docker must not run')):m.setup()
+        self.assertEqual(m.env_read()['BEDROCK_VERSION'],'EXISTING')
+        self.assertEqual(m.env_read()['LAN_IP'],'192.168.1.70')
+        self.assertTrue((self.root/'compose.game.json').exists())
+    def test_eula_required(self):
+        os.environ['LAN_IP']='192.168.1.50'
+        with self.assertRaises(RuntimeError):m.setup()
+        self.assertFalse((self.root/'.env').exists())
+    def test_compose_env_removes_interpolation_overrides(self):
+        os.environ.update(LAN_IP='',EULA='',BEDROCK_VERSION='EXISTING',OTHER='keep')
+        cfg=m.compose_env();self.assertNotIn('LAN_IP',cfg);self.assertNotIn('EULA',cfg)
+        self.assertNotIn('BEDROCK_VERSION',cfg);self.assertEqual(cfg['OTHER'],'keep')
+        self.assertEqual(m.compose_env(True)['BEDROCK_VERSION'],'LATEST')
+    def test_compose_overlays_are_loaded(self):
+        for name in ['compose.allowlist.json','compose.game.json']:m.atomic(self.root/name,{})
+        args=m.dcargs();self.assertIn(str(self.root/'compose.allowlist.json'),args);self.assertIn(str(self.root/'compose.game.json'),args)
+    def test_game_overlay(self):
+        env=m.game_overlay(m.GAME_DEFAULTS)['services']['bedrock']['environment']
+        self.assertEqual(env['ALLOW_CHEATS'],'true');self.assertEqual(env['GAMEMODE'],'survival')
+        self.assertEqual(env['FORCE_GAMEMODE'],'false')
+    def test_first_download_recovers_from_existing(self):
+        self.seed();m.env_update({'BEDROCK_VERSION':'EXISTING'})
+        with mock.patch.object(m,'dc'),mock.patch.object(m,'wait_ready'):m.up()
+        self.assertEqual(m.env_read()['BEDROCK_VERSION'],'LATEST')
+    def test_existing_executable_is_not_redownloaded(self):
+        self.seed();m.env_update({'BEDROCK_VERSION':'EXISTING'});(self.root/'data'/'bedrock_server').write_text('fixture')
+        with mock.patch.object(m,'dc'),mock.patch.object(m,'wait_ready'):m.up()
+        self.assertEqual(m.env_read()['BEDROCK_VERSION'],'EXISTING')
+    def test_parse_current_players(self):
+        self.assertEqual(m.parse_online('[INFO] There are 2/8 players online:\n[INFO] Parent Test, Enfant'),['Parent Test','Enfant'])
+        self.assertEqual(m.parse_online('[INFO] There are 0/8 players online:'),[])
+        self.assertIsNone(m.parse_online('[INFO] There are 2/8 players online:\n[INFO] One'))
+    def test_xuid_validation_and_merge(self):
+        entries=[{'name':'Parent','xuid':'253540000000000123'},{'name':'parent','xuid':'253540000000000123'}]
+        self.assertEqual(len(m.merge_entries(entries)),1)
+        self.assertIsInstance(m.merge_entries(entries)[0]['xuid'],str)
+        with self.assertRaises(RuntimeError):m.validate_entries([{'name':'A','xuid':123}])
+    def test_remove_player_updates_both_lists(self):
+        self.seed();entries=[{'name':'Parent','xuid':'123'},{'name':'Invite','xuid':'456'}]
+        m.atomic(self.root/'data'/'allowlist.json',entries)
+        m.atomic(self.root/'compose.allowlist.json',{'services':{'bedrock':{'environment':{'ALLOW_LIST_USERS':'Parent:123\nInvite:456'}}}})
+        os.environ['PLAYER']='Invite'
+        with mock.patch.object(m,'running',return_value=''):m.access('remove')
+        self.assertEqual(m.load(self.root/'data'/'allowlist.json'),[entries[0]])
+        self.assertEqual(m.load(self.root/'compose.allowlist.json')['services']['bedrock']['environment']['ALLOW_LIST_USERS'],'Parent:123')
+    def test_manual_import_does_not_resurrect_deleted_players(self):
+        self.seed();m.atomic(self.root/'data'/'allowlist.json',[])
+        m.atomic(self.root/'compose.allowlist.json',{'services':{'bedrock':{'environment':{'ALLOW_LIST_USERS':'Parent:123'}}}})
+        with mock.patch.object(m,'running',return_value=''):m.access('reload')
+        self.assertEqual(m.load(self.root/'compose.allowlist.json')['services']['bedrock']['environment']['ALLOW_LIST_USERS'],'')
+    def test_empty_allowlist_cannot_be_enabled(self):
+        self.seed()
+        with self.assertRaises(RuntimeError):m.access('enable')
+    def test_connected_ignores_old_visitors(self):
+        replies=['[INFO] There are 1/8 players online:\n[INFO] Parent','[INFO] Player connected: Invite, xuid: 456\n[INFO] Player connected: Parent, xuid: 123']
+        with mock.patch.object(m,'running',return_value='c'),mock.patch.object(m,'dc'),mock.patch.object(m,'logs',side_effect=replies),mock.patch.object(m.time,'sleep'):
+            self.assertEqual(m.connected()[0]['xuid'],'123')
+    def test_game_commands_persist_without_starting_docker(self):
+        os.environ['VALUE']='off'
+        with mock.patch.object(m,'docker_reachable',return_value=False),mock.patch.object(m,'up') as up:m.game_action('keep-inventory')
+        self.assertFalse(m.settings()['game']['keep_inventory']);up.assert_not_called()
+        self.assertEqual(m.load(self.root/'compose.game.json')['services']['bedrock']['environment']['ALLOW_CHEATS'],'true')
+    def test_game_defaults_preserve_time(self):
+        m.update_settings(stop_at='21:00',game={'cheats':False})
+        with mock.patch.object(m,'docker_reachable',return_value=False):m.game_action('game-defaults')
+        self.assertEqual(m.settings()['stop_at'],'21:00');self.assertEqual(m.settings()['game'],m.GAME_DEFAULTS)
+    def test_gamemode_all_does_not_change_default(self):
+        os.environ['MODE']='créatif'
+        with mock.patch.object(m,'config_check'),mock.patch.object(m,'docker_start'),mock.patch.object(m,'send') as send:m.game_action('gamemode-all')
+        send.assert_called_once_with('gamemode creative @a');self.assertEqual(m.settings()['game']['gamemode'],'survival')
+    def test_game_rule_confirmation(self):
+        def reply(cmd):return 'Set game difficulty to easy' if cmd.startswith('difficulty') else cmd.split()[1]+' set to '+cmd.split()[2]
+        with mock.patch.object(m,'send',side_effect=reply) as send:m.apply_game_rules()
+        self.assertEqual(send.call_count,3)
+        with mock.patch.object(m,'send',return_value='unrecognized response'),self.assertRaises(RuntimeError):m.apply_game_rules()
+    def test_send_unknown_command_is_an_error(self):
+        with mock.patch.object(m,'running',return_value='c'),mock.patch.object(m,'dc'),mock.patch.object(m,'logs',return_value='Unknown command'),mock.patch.object(m.time,'sleep'),self.assertRaises(RuntimeError):m.send('bad')
+    def test_allowlist_reload_requires_confirmation(self):
+        with mock.patch.object(m,'running',return_value='c'),mock.patch.object(m,'dc'),mock.patch.object(m,'logs',return_value='Allowlist reloaded'),mock.patch.object(m.time,'sleep'):
+            self.assertIn('reloaded',m.send('allowlist reload',reload=True))
+    def test_unsafe_archives_are_rejected(self):
+        for name,link in [('../escape',False),('/absolute',False),('data/link',True)]:
+            stream=io.BytesIO()
+            with tarfile.open(fileobj=stream,mode='w') as tar:
+                info=tarfile.TarInfo(name)
+                if link:info.type=tarfile.SYMTYPE;info.linkname='/tmp/escape'
+                tar.addfile(info)
+            stream.seek(0)
+            with tarfile.open(fileobj=stream,mode='r') as tar,self.assertRaises(RuntimeError):m.safe_members(tar)
+    def test_archive_filter_rejects_links(self):
+        info=tarfile.TarInfo('link');info.type=tarfile.SYMTYPE
+        with self.assertRaises(RuntimeError):m.archive_filter(info)
+    def test_backup_and_restore_real_files_preserve_access(self):
+        self.seed();(self.root/'data'/'world.txt').write_text('saved world')
+        m.atomic(self.root/'data'/'allowlist.json',[{'name':'A','xuid':'123'}]);m.update_settings(stop_at='20:30')
+        active=[True];events=[]
+        def stopped():events.append('stop');active[0]=False
+        def dc(args,*a,**kw):
+            if args[0]=='start':events.append('start');active[0]=True
+            return ''
+        with mock.patch.object(m,'running',side_effect=lambda:'c' if active[0] else ''),mock.patch.object(m,'stop',side_effect=stopped),mock.patch.object(m,'dc',side_effect=dc):m.backup()
+        self.assertEqual(events,['stop','start'])
+        file=next((self.root/'backups').glob('*.tar.gz'))
+        with tarfile.open(file) as tar:self.assertIn('family-settings.json',tar.getnames())
+        (self.root/'data'/'world.txt').write_text('new world');m.atomic(self.root/'data'/'allowlist.json',[{'name':'B','xuid':'456'}])
+        os.environ.update(FILE=str(file),CONFIRM='yes')
+        with mock.patch.object(m,'stop'),mock.patch.object(m,'up'):m.restore()
+        self.assertEqual((self.root/'data'/'world.txt').read_text(),'saved world')
+        self.assertEqual(m.load(self.root/'data'/'allowlist.json')[0]['name'],'B')
+    def test_backup_failure_does_not_restart_a_stopped_server(self):
+        self.seed()
+        with mock.patch.object(m,'running',return_value=''),mock.patch.object(m.tarfile,'open',side_effect=OSError('disk full')),mock.patch.object(m,'dc') as dc,self.assertRaises(OSError):m.backup(False,True)
+        dc.assert_not_called()
+    def test_cancel_does_not_stop_server(self):
+        m.atomic(m.state_path(),{'status':'scheduled','token':'t'})
+        with mock.patch.object(m,'stop') as stop:m.cancel_session()
+        self.assertEqual(m.state()['status'],'cancelled');stop.assert_not_called()
+    def test_cancel_refused_during_shutdown(self):
+        m.atomic(m.state_path(),{'status':'stopping'})
+        with self.assertRaises(RuntimeError):m.cancel_session()
+    def simulate_worker(self,scenario):
+        target=dt.datetime(2030,1,1,19,0,tzinfo=dt.timezone.utc);ticks=[target.timestamp()-901];events=[];notices=[]
+        m.atomic(m.state_path(),{'status':'scheduled','token':'test','deadline':target.isoformat(),'pid':123})
+        def sleep(value):
+            ticks[0]+=value
+            if scenario=='cancel' and ticks[0]>=target.timestamp()-899:
+                s=m.state();s['status']='cancelled';m.atomic(m.state_path(),s)
+        def stop():
+            events.append('stop')
+            if scenario=='stop-fails':raise RuntimeError('stop failed')
+        def backup(*args):
+            events.append('backup')
+            if scenario=='backup-fails':raise RuntimeError('backup failed')
+        fake_time=types.SimpleNamespace(time=lambda:ticks[0],sleep=sleep)
+        with mock.patch.object(m,'time',fake_time),mock.patch.object(m,'notice',side_effect=lambda text:notices.append((round(target.timestamp()-ticks[0]),text))),mock.patch.object(m,'stop',side_effect=stop),mock.patch.object(m,'backup',side_effect=backup),mock.patch.object(m,'config_check'),mock.patch.object(m,'docker_start'),mock.patch.object(m,'diagnostic'),mock.patch.object(m.subprocess,'Popen'):
+            m.session_worker('test')
+        return events,notices
+    def test_worker_warnings_and_stop_then_backup(self):
+        events,notices=self.simulate_worker('normal')
+        self.assertEqual([x[0] for x in notices[1:]],[900,300,60,30]);self.assertEqual(events,['stop','backup']);self.assertEqual(m.state()['status'],'stopped')
+    def test_worker_cancellation(self):
+        events,_=self.simulate_worker('cancel');self.assertEqual(events,[])
+    def test_worker_stop_failure_skips_backup(self):
+        events,_=self.simulate_worker('stop-fails');self.assertEqual(events,['stop']);self.assertEqual(m.state()['status'],'failed')
+    def test_worker_backup_failure_is_reported(self):
+        events,_=self.simulate_worker('backup-fails');self.assertEqual(events,['stop','backup']);self.assertEqual(m.state()['status'],'failed')
+
+STUB=r"""#!/usr/bin/env python3
+import json,os,sys
+from pathlib import Path
+args=sys.argv[1:];path=Path(os.environ['FAKE_STATE']);s=json.loads(path.read_text()) if path.exists() else {'running':False,'command':''}
+def save():path.write_text(json.dumps(s))
+if args and args[0]=='compose' and '--project-directory' in args:
+    if any(k in os.environ for k in ('LAN_IP','EULA')):print('BAD_ENV',file=sys.stderr);sys.exit(9)
+    if 'up' in args:
+        if os.environ.get('FAKE_FAIL')=='yes':print('SIMULATED_FAILURE',file=sys.stderr);sys.exit(7)
+        s['running']=True;save();print('Up')
+    elif 'stop' in args:s['running']=False;save();print('Stopped')
+    elif 'start' in args or 'restart' in args:s['running']=True;save()
+    elif 'ps' in args:print(('fake' if s['running'] else '') if '-q' in args else str(s['running']))
+    elif 'exec' in args:s['command']=args[-1];save()
+    elif 'logs' in args:print('SIMULATED_DOCKER_LOGS')
+    else:print('ok')
+elif args and args[0]=='inspect':print('2026-11-11T10:00:00Z')
+elif args and args[0]=='logs':
+    print('[INFO] Server started.');print('[INFO] Player connected: Parent, xuid: 123')
+    cmd=s.get('command','')
+    if os.environ.get('FAKE_REPLY_ERROR')=='yes':print('Unknown command')
+    elif cmd.startswith('difficulty '):print('Set game difficulty to '+cmd.split()[-1])
+    elif cmd.startswith('gamerule '):print('Game rule '+cmd.split()[1]+' has been updated to '+cmd.split()[-1])
+    elif cmd=='list':print('There are 1/8 players online:');print('Parent')
+    elif cmd=='allowlist reload':print('Allowlist reloaded')
+    elif cmd:print('Command executed')
+else:print('ok')
+"""
+
+class MakeTests(unittest.TestCase):
+    def test_all_targets_dry_run(self):
+        result=subprocess.run(['make','--no-print-directory','-n','-C',str(PACKAGE)]+list(m.PUBLIC_ACTIONS)+['test','lint','verify'],capture_output=True,text=True,env=REAL_ENV)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertNotIn('sudo ',result.stdout)
+    def test_help_does_not_need_docker(self):
+        result=subprocess.run(['make','--no-print-directory','-C',str(PACKAGE),'help'],capture_output=True,text=True,env=REAL_ENV)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertIn('make game-show',result.stdout)
+
+class FakeDockerTests(unittest.TestCase):
+    def setUp(self):
+        tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup);base=Path(tmp.name);self.root=base/'minecraft-famille';(self.root/'scripts').mkdir(parents=True);(self.root/'docs').mkdir()
+        for name in ('Makefile', 'compose.yaml', 'scripts/manage.py', 'docs/en/commands.txt', 'docs/fr/commands.txt'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(PACKAGE / name, target)
+        shutil.copy2(PACKAGE / 'family-settings.example.json', self.root / 'family-settings.json')
+        binary=base/'bin';binary.mkdir();file=binary/'docker';file.write_text(STUB);file.chmod(0o755)
+        self.env=dict(REAL_ENV);self.env.update(PATH=str(binary)+os.pathsep+REAL_ENV['PATH'],FAKE_STATE=str(base/'state.json'),PYTHONDONTWRITEBYTECODE='1')
+        result=self.make('setup','LAN_IP=192.168.1.50','EULA=TRUE');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+    def make(self,*args,env=None):return subprocess.run(['make','--no-print-directory','-C',str(self.root),*args],capture_output=True,text=True,env=env or self.env,timeout=25)
+    def test_make_up_applies_rules_and_reads_logs(self):
+        for target in ('check','up','status','logs-once'):
+            result=self.make(target);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result=self.make('up');self.assertIn('playerssleepingpercentage has been updated to 0',result.stdout)
+        self.assertIn('keepinventory has been updated to true',result.stdout)
+    def test_make_failure_shows_docker_logs(self):
+        env=dict(self.env);env['FAKE_FAIL']='yes';result=self.make('up',env=env)
+        self.assertNotEqual(result.returncode,0);self.assertIn('SIMULATED_FAILURE',result.stdout);self.assertIn('SIMULATED_DOCKER_LOGS',result.stdout)
+    def test_game_settings_and_time_do_not_overwrite_each_other(self):
+        for args in [('cheats','VALUE=off'),('difficulty','LEVEL=normale'),('sleep','PERCENT=50'),('session-default','TIME=20:30')]:
+            result=self.make(*args);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        cfg=json.loads((self.root/'family-settings.json').read_text())
+        self.assertEqual(cfg['stop_at'],'20:30');self.assertFalse(cfg['game']['cheats']);self.assertEqual(cfg['game']['difficulty'],'normal');self.assertEqual(cfg['game']['sleep_percent'],50)
+    def test_unconfirmed_game_rule_is_failure(self):
+        env=dict(self.env);env['FAKE_REPLY_ERROR']='yes';result=self.make('up',env=env)
+        self.assertNotEqual(result.returncode,0);self.assertIn('SIMULATED_DOCKER_LOGS',result.stdout)
+
+
+class CommunityLayoutTests(unittest.TestCase):
+    def test_bilingual_help(self):
+        for language, expected in [('en', 'MINECRAFT BEDROCK FAMILY'), ('fr', 'MINECRAFT EN FAMILLE')]:
+            env = dict(REAL_ENV)
+            env['LANGUAGE'] = language
+            result = subprocess.run(['make', '--no-print-directory', '-C', str(PACKAGE), 'help'], capture_output=True, text=True, env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(expected, result.stdout)
+
+    def test_runtime_configuration_is_ignored(self):
+        ignored = (PACKAGE / '.gitignore').read_text(encoding='utf-8').splitlines()
+        for name in ['.env', 'family-settings.json', 'compose.allowlist.json', 'compose.game.json', 'data/', 'backups/', 'logs/', '.state/']:
+            self.assertIn(name, ignored)
+        self.assertTrue((PACKAGE / 'family-settings.example.json').exists())
+
+if __name__=='__main__':unittest.main()
+

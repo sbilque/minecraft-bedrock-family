@@ -1,0 +1,35 @@
+name: Verify
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.9'
+          - os: ubuntu-latest
+            python: '3.12'
+          - os: macos-15
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Show test environment
+        run: |
+          uname -m
+          python3 --version
+          make --version
+      - name: Verify Apple Silicon test runner
+        if: runner.os == 'macOS'
+        run: test "$(uname -m)" = arm64
+      - name: Offline syntax and fake-Docker tests
+        run: make verify
