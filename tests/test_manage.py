@@ -740,6 +740,31 @@ class LocalTests(unittest.TestCase):
         self.assertEqual(events, ["stop", "backup"])
         self.assertEqual(m.state()["status"], "failed")
 
+    def test_parse_duration(self):
+        self.assertEqual(m.parse_duration("45"), 45)
+        self.assertEqual(m.parse_duration("45m"), 45)
+        self.assertEqual(m.parse_duration("1h"), 60)
+        self.assertEqual(m.parse_duration("2h"), 120)
+        self.assertEqual(m.parse_duration("1h30m"), 90)
+        self.assertEqual(m.parse_duration("2H30M"), 150)
+        self.assertEqual(m.parse_duration("1 h 30 m"), 90)
+
+    def test_parse_duration_invalid(self):
+        for value in ["", "0", "0m", "-5", "m", "h", "1x", "1h1m1m", "abc"]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                m.parse_duration(value)
+
+    def test_relative_deadline(self):
+        now = dt.datetime(2030, 1, 1, 16, 0, tzinfo=dt.timezone.utc)
+        target = m.relative_deadline(90, now)
+        self.assertEqual(target, dt.datetime(2030, 1, 1, 17, 30, tzinfo=dt.timezone.utc))
+
+    def test_deadline_iso(self):
+        now = dt.datetime(2030, 1, 1, 16, 0, tzinfo=dt.timezone.utc)
+        iso = (now + dt.timedelta(minutes=90)).isoformat()
+        self.assertEqual(m.deadline(iso), now + dt.timedelta(minutes=90))
+        self.assertEqual(m.deadline(iso).hour, 17)
+
 
 STUB = r"""#!/usr/bin/env python3
 import json,os,sys

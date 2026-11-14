@@ -12,6 +12,7 @@
   "confirm_starting_or_restarting_the_server": "Confirmer le démarrage ou redémarrage du serveur.",
   "schedule_the_end_of_a_game": "Programmer la fin d’une partie.",
   "end_time_for_this_game_only": "Heure de fin pour cette partie seulement.",
+  "run_the_server_for_this_duration_r_use_hours_or_minutes_ex_1h30m": "Lancer le serveur pendant cette durée (ex. 45m, 1h, 2h30m).",
   "list_players_and_their_identifiers": "Voir les joueurs et leurs identifiants.",
   "manage_allowed_players": "Gérer les joueurs autorisés.",
   "view_or_change_game_rules": "Consulter ou modifier les règles du jeu.",

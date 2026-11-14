@@ -12,6 +12,7 @@
   "confirm_starting_or_restarting_the_server": "Confirm starting or restarting the server.",
   "schedule_the_end_of_a_game": "Schedule the end of a game.",
   "end_time_for_this_game_only": "End time for this game only.",
+  "run_the_server_for_this_duration_r_use_hours_or_minutes_ex_1h30m": "Run the server for this duration (e.g. 45m, 1h, 2h30m).",
   "list_players_and_their_identifiers": "List players and their identifiers.",
   "manage_allowed_players": "Manage allowed players.",
   "view_or_change_game_rules": "View or change game rules.",

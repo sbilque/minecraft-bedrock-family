@@ -26,6 +26,14 @@ bedrock-family session start --until 21:00
 
 Times use the Mac's clock. A time already past today is refused. Reminders arrive 15 min, 5 min, 1 min and 30 s before the end; already-past reminders are skipped. At the selected time, shutdown begins, then the world is backed up. The server stays off.
 
+To run the server for a fixed length instead, use `--duration` with minutes (`45m`) or hours (`1h`, `2h30m`, or a plain number of minutes):
+
+```sh
+bedrock-family session start --duration 2h30m
+```
+
+The server starts, and a timer stops it after the given length with the same reminders and backup. It is a relative time, so it always lands in the future.
+
 This is not a daily schedule: run `bedrock-family session start` for each game.
 
 ## List or choose a world

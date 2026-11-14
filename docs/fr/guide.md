@@ -26,6 +26,14 @@ bedrock-family session start --until 21:00
 
 L’heure est celle du Mac. Une heure déjà passée aujourd’hui est refusée. Les rappels arrivent 15 min, 5 min, 1 min et 30 s avant la fin ; ceux déjà passés ne sont pas rejoués. À l’heure prévue, l’arrêt commence, puis le monde est sauvegardé. Le serveur reste éteint.
 
+Pour faire tourner le serveur pendant une durée fixe, utilisez `--duration` avec des minutes (`45m`) ou des heures (`1h`, `2h30m`, ou un nombre de minutes seul) :
+
+```sh
+bedrock-family session start --duration 2h30m
+```
+
+Le serveur démarre, puis s’arrête tout seul à la fin de la durée, avec les mêmes rappels et la même sauvegarde. C’est une durée relative, elle tombe donc toujours dans l’avenir.
+
 Cette programmation ne revient pas demain : relancez `bedrock-family session start` à chaque partie.
 
 ## Afficher ou choisir un monde

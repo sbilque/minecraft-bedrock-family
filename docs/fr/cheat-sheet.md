@@ -16,11 +16,12 @@ Les joueurs utilisent Minecraft Bedrock sur iOS ou Windows 10/11, sur le même r
 |---|---|
 | Démarrer avec l’heure habituelle | bedrock-family session start |
 | Choisir une autre heure aujourd’hui | bedrock-family session start --until 21:00 |
+| Tourner pendant une durée | bedrock-family session start --duration 2h30m |
 | Arrêter maintenant et sauvegarder | bedrock-family session stop |
 | Vérifier l’heure prévue | bedrock-family session status |
 | Annuler l’heure sans arrêter | bedrock-family session cancel |
 
-Rappels : 15 min, 5 min, 1 min et 30 s avant. Puis arrêt et sauvegarde. Une heure passée aujourd’hui est refusée.
+Rappels : 15 min, 5 min, 1 min et 30 s avant. Puis arrêt et sauvegarde. Une heure passée aujourd’hui est refusée. Une durée (minutes ou heures) tombe toujours dans l’avenir.
 
 ## Garder une heure habituelle
 

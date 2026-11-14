@@ -16,11 +16,12 @@ Players use Minecraft Bedrock on iOS or Windows 10/11, on the same local network
 |---|---|
 | Start with the usual finishing time | bedrock-family session start |
 | Choose another time today | bedrock-family session start --until 21:00 |
+| Run for a fixed length | bedrock-family session start --duration 2h30m |
 | Stop now and back up | bedrock-family session stop |
 | Check the planned time | bedrock-family session status |
 | Cancel the timer without stopping | bedrock-family session cancel |
 
-Reminders: 15 min, 5 min, 1 min and 30 s before the end. Then shutdown and backup. A time already past today is refused.
+Reminders: 15 min, 5 min, 1 min and 30 s before the end. Then shutdown and backup. A time already past today is refused. A duration (minutes or hours) always lands in the future.
 
 ## Save a usual finishing time
 

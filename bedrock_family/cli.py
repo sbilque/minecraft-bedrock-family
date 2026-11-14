@@ -120,6 +120,11 @@ def build_parser(language=None):
     start_session.add_argument(
         "--until", metavar="HH:MM", help=tr("end_time_for_this_game_only")
     )
+    start_session.add_argument(
+        "--duration",
+        metavar="DURATION",
+        help=tr("run_the_server_for_this_duration_r_use_hours_or_minutes_ex_1h30m"),
+    )
     for name in ("status", "cancel", "stop", "logs"):
         session_commands.add_parser(name)
     defaults = session_commands.add_parser("default")
@@ -406,7 +411,17 @@ def execute(args, parser):
             create_world(root, args.name, args.yes)
     elif args.command == "session":
         if args.session_command == "start":
-            invoke(root, "session", STOP_AT=args.until or "")
+            if getattr(args, "duration", None):
+                try:
+                    stop_at = manage.relative_deadline(
+                        manage.parse_duration(args.duration)
+                    ).isoformat()
+                except (ValueError, TypeError) as exc:
+                    raise RuntimeError(str(exc)) from exc
+                else:
+                    invoke(root, "session", STOP_AT=stop_at)
+            else:
+                invoke(root, "session", STOP_AT=args.until or "")
         elif args.session_command == "default":
             if args.default_command == "show":
                 invoke(root, "session-default-show")

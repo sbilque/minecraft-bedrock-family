@@ -231,6 +231,69 @@ def parse_clock(value):
     return value
 
 
+def parse_duration(value):
+    """Parse a compact duration into a number of minutes.
+
+    Accepts values such as ``45m``, ``1h``, ``1h30m`` or a bare number of
+    minutes (``45``). Returns a positive integer, otherwise raises
+    ``ValueError``.
+    """
+    text = str(value or "").strip().lower().replace(" ", "")
+    if not text:
+        raise ValueError("Duration cannot be empty.")
+    segments = re.findall(r"(\d+(?:\.\d+)?)\s*(h|m)?", text)
+    if not re.fullmatch(r"(?:\d+(?:\.\d+)?\s*(?:h|m)?)+", text):
+        raise ValueError("Invalid duration format.")
+    total = 0
+    seen_unit = set()
+    for amount, unit in segments:
+        number = int(float(amount))
+        if not unit:
+            if seen_unit:
+                raise ValueError("Invalid duration format.")
+        else:
+            if unit in seen_unit:
+                raise ValueError("Invalid duration format.")
+            seen_unit.add(unit)
+            number *= 60 if unit == "h" else 1
+        total += number
+    if total <= 0:
+        raise ValueError("Duration must be a positive amount of time.")
+    return int(total)
+
+
+def relative_deadline(minutes, now=None):
+    """Return the timezone-aware deadline ``minutes`` from ``now``."""
+    now = now or dt.datetime.now().astimezone()
+    return now + dt.timedelta(minutes=minutes)
+
+
+def deadline(value, now=None):
+    """Return the next scheduled shutdown time for a clock or ISO value.
+
+    A clock string (``HH:MM``) schedules the next matching time in the future.
+    An ISO-8601 datetime string (containing ``T``) is used as-is. Both return a
+    timezone-aware ``datetime``.
+    """
+    now = now or dt.datetime.now().astimezone()
+    text = str(value or "").strip()
+    if "T" in text.replace("+", " +", 1) or text.endswith("z"):
+        try:
+            return dt.datetime.fromisoformat(text)
+        except ValueError as exc:
+            raise RuntimeError(
+                "Format d'heure invalide : HH:MM ou une heure ISO 8601."
+            ) from exc
+    clock(text)
+    h, m = map(int, text.split(":"))
+    target = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    if target <= now:
+        raise RuntimeError(
+            "Heure deja passee aujourd hui. Choisir une heure future."
+        )
+    return target
+
+
 def validate_game(value):
     """Validate and normalize the stored game configuration."""
     if not isinstance(value, dict):
@@ -1014,18 +1077,6 @@ def restore():
         atomic(ROOT / "data" / "allowlist.json", old_list)
     up()
     say("world_restored_current_settings_and_permissions_were_preserved")
-
-
-def deadline(value, now=None):
-    clock(value)
-    now = now or dt.datetime.now().astimezone()
-    h, m = map(int, value.split(":"))
-    target = now.replace(hour=h, minute=m, second=0, microsecond=0)
-    if target <= now:
-        raise RuntimeError(
-            "Heure deja passee aujourd hui. Choisir une heure future."
-        )
-    return target
 
 
 def state_path():
