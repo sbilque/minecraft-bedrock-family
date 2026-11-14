@@ -118,7 +118,7 @@ Au premier accueil, les personnes du réseau local qui se connectent avec un com
 bedrock-family access preview
 bedrock-family access sync
 bedrock-family access enable
-bedrock-family version pin
+bedrock-family version-pin
 ```
 
 Vérifiez les noms avant `sync`. L'activation de la liste peut couper la partie ; les inscrits pourront revenir. `version-pin` garde la version du serveur qui vient de fonctionner.

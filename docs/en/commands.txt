@@ -1,7 +1,9 @@
 MINECRAFT BEDROCK FAMILY
 
 Install the CLI:
-  uv venv && uv pip install --python ./.venv/bin/python .
+  uv venv
+  source .venv/bin/activate
+  uv pip install .
   bedrock-family init ~/MinecraftFamily
   cd ~/MinecraftFamily
   bedrock-family setup --accept-eula
@@ -125,7 +127,7 @@ MAINTENANCE
     Back up and update using the saved version choice.
   bedrock-family update --server
     Back up and download the latest Bedrock server.
-  bedrock-family version pin
+  bedrock-family version-pin
     Keep the downloaded version on future starts.
   bedrock-family version pull
     Download only the Docker image.

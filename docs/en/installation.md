@@ -118,7 +118,7 @@ Initially, people on the local network who connect with a Microsoft account may 
 bedrock-family access preview
 bedrock-family access sync
 bedrock-family access enable
-bedrock-family version pin
+bedrock-family version-pin
 ```
 
 Check the names before `sync`. Enabling the list can interrupt play; enrolled players can reconnect. `version-pin` keeps the server version that just worked.

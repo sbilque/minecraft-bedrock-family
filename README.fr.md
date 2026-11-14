@@ -19,7 +19,9 @@ Installez Docker Desktop, Python et uv sur le Mac, puis suivez le [tutoriel d’
 Vous avez déjà préparé le Mac ? Installez le CLI, créez un dossier de serveur, puis démarrez une partie :
 
 ```sh
-uv venv && uv pip install --python ./.venv/bin/python .
+uv venv
+source .venv/bin/activate
+uv pip install .
 bedrock-family init ~/MinecraftFamille
 cd ~/MinecraftFamille
 bedrock-family setup
