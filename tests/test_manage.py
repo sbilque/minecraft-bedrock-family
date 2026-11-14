@@ -706,7 +706,7 @@ class LocalTests(unittest.TestCase):
             mock.patch.object(
                 m,
                 "notice",
-                side_effect=lambda text: notices.append(
+                side_effect=lambda text, **values: notices.append(
                     (round(target.timestamp() - ticks[0]), text)
                 ),
             ),

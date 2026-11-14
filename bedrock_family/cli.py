@@ -381,7 +381,7 @@ def execute(args, parser):
                 raise RuntimeError(
                     tr("explicitly_accept_the_terms_with_accept_eula")
                 )
-            confirm("Acceptez-vous les conditions Minecraft ?", False)
+            confirm("explicitly_accept_the_minecraft_terms", False)
         invoke(root, "setup", EULA="TRUE", LAN_IP=args.ip or "")
     elif args.command == "check":
         invoke(root, "check")
@@ -539,7 +539,7 @@ def execute(args, parser):
         }[args.target]
         invoke(root, action)
     else:
-        parser.error("Commande non reconnue.")
+        parser.error(tr("unknown_command_in_the_cli"))
     return root
 
 

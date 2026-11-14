@@ -156,7 +156,7 @@ def raw(args, check=True, timeout=60, env=None):
     )
     if check and process.returncode:
         raise RuntimeError(
-            (process.stderr or process.stdout).strip() or "Commande en echec"
+            (process.stderr or process.stdout).strip() or tr("command_failed")
         )
     return process
 
@@ -177,7 +177,7 @@ def parse_boolean_value(value):
         return True
     if normalized in ("off", "false", "non", "0", "desactive"):
         return False
-    raise RuntimeError("Choisir VALUE=on ou VALUE=off.")
+    raise RuntimeError(tr("choose_value_on_or_value_off"))
 
 
 def normalize_difficulty(value):
@@ -194,7 +194,7 @@ def normalize_difficulty(value):
     }
     normalized = normalize_choice_text(value)
     if normalized not in aliases:
-        raise RuntimeError("LEVEL=facile, paisible, normale ou difficile.")
+        raise RuntimeError(tr("level_easy_peaceful_normal_or_hard"))
     return aliases[normalized]
 
 
@@ -210,24 +210,26 @@ def normalize_gamemode(value):
     }
     normalized = normalize_choice_text(value)
     if normalized not in aliases:
-        raise RuntimeError("MODE=survie, creatif ou aventure.")
+        raise RuntimeError(tr("mode_survival_creative_or_adventure"))
     return aliases[normalized]
 
 
 def parse_percentage(value):
     """Validate that a percentage value falls between 0 and 100."""
     if not re.fullmatch(r"\d{1,3}", value or "") or not 0 <= int(value) <= 100:
-        raise RuntimeError("PERCENT doit etre un entier de 0 a 100.")
+        raise RuntimeError(tr("percent_must_be_an_integer_from_0_to_100"))
     return int(value)
 
 
 def parse_clock(value):
     """Validate and normalize a time expressed as HH:MM."""
     if not re.fullmatch(r"\d{2}:\d{2}", value or ""):
-        raise RuntimeError("Heure attendue : HH:MM, par exemple 20:30.")
+        raise RuntimeError(
+            tr("expected_a_time_in_hh_mm_format_for_example_20_30")
+        )
     hour, minute = map(int, value.split(":"))
     if hour > 23 or minute > 59:
-        raise RuntimeError("Heure invalide : de 00:00 a 23:59.")
+        raise RuntimeError(tr("invalid_time_use_00_00_through_23_59"))
     return value
 
 
@@ -240,25 +242,25 @@ def parse_duration(value):
     """
     text = str(value or "").strip().lower().replace(" ", "")
     if not text:
-        raise ValueError("Duration cannot be empty.")
+        raise ValueError(tr("duration_cannot_be_empty"))
     segments = re.findall(r"(\d+(?:\.\d+)?)\s*(h|m)?", text)
     if not re.fullmatch(r"(?:\d+(?:\.\d+)?\s*(?:h|m)?)+", text):
-        raise ValueError("Invalid duration format.")
+        raise ValueError(tr("invalid_duration_format"))
     total = 0
     seen_unit = set()
     for amount, unit in segments:
         number = int(float(amount))
         if not unit:
             if seen_unit:
-                raise ValueError("Invalid duration format.")
+                raise ValueError(tr("invalid_duration_format"))
         else:
             if unit in seen_unit:
-                raise ValueError("Invalid duration format.")
+                raise ValueError(tr("invalid_duration_format"))
             seen_unit.add(unit)
             number *= 60 if unit == "h" else 1
         total += number
     if total <= 0:
-        raise ValueError("Duration must be a positive amount of time.")
+        raise ValueError(tr("duration_must_be_a_positive_amount_of_time"))
     return int(total)
 
 
@@ -282,22 +284,20 @@ def deadline(value, now=None):
             return dt.datetime.fromisoformat(text)
         except ValueError as exc:
             raise RuntimeError(
-                "Format d'heure invalide : HH:MM ou une heure ISO 8601."
+                tr("invalid_iso_or_clock_time_hh_mm_or_iso_8601")
             ) from exc
     clock(text)
     h, m = map(int, text.split(":"))
     target = now.replace(hour=h, minute=m, second=0, microsecond=0)
     if target <= now:
-        raise RuntimeError(
-            "Heure deja passee aujourd hui. Choisir une heure future."
-        )
+        raise RuntimeError(tr("that_time_has_already_passed_today_choose_a_future_time"))
     return target
 
 
 def validate_game(value):
     """Validate and normalize the stored game configuration."""
     if not isinstance(value, dict):
-        raise RuntimeError("Les reglages de jeu doivent former un objet JSON.")
+        raise RuntimeError(tr("game_settings_must_be_a_json_object"))
     cfg = dict(GAME_DEFAULTS)
     cfg.update(value)
     for key in ("cheats", "keep_inventory"):
@@ -313,7 +313,7 @@ def load_family_settings():
     """Return the effective settings with the validated game configuration."""
     config = read_json_file(ROOT / "family-settings.json", {})
     if not isinstance(config, dict):
-        raise RuntimeError("Reglages familiaux invalides.")
+        raise RuntimeError(tr("invalid_family_settings"))
     game = (
         config["game"]
         if "game" in config
@@ -374,7 +374,7 @@ def world_default():
         or name in (".", "..")
         or Path(name).name != name
     ):
-        raise RuntimeError("Indiquer le nom exact d un monde avec LEVEL=nom.")
+        raise RuntimeError(tr("provide_the_exact_world_name_with_level_name"))
     with lock("maintenance"):
         if not (ROOT / "data" / "worlds" / name).is_dir():
             raise RuntimeError(
@@ -406,7 +406,7 @@ def env_read():
     p = ROOT / ".env"
     if not p.exists():
         raise RuntimeError(
-            "Initialiser le dossier avec bedrock-family init, puis configurer avec bedrock-family setup."
+            tr("initialize_the_folder_with_bedrock_family_init_then_configure_it_with_bedrock_family_setup")
         )
     result = {}
     for line in p.read_text(encoding="utf-8").splitlines():
@@ -436,9 +436,9 @@ def ipv4(value):
     try:
         ip = ipaddress.IPv4Address(value)
     except ValueError:
-        raise RuntimeError("Utiliser l adresse IPv4 locale du Mac.")
+        raise RuntimeError(tr("use_the_mac_s_local_ipv4_address"))
     if ip.is_loopback or ip.is_unspecified or ip.is_multicast:
-        raise RuntimeError("Adresse locale du Mac attendue, pas localhost.")
+        raise RuntimeError(tr("expected_a_local_mac_address_not_localhost"))
     return str(ip)
 
 
@@ -502,7 +502,7 @@ def select_lan_ip(configured):
     candidates = ipv4_candidates()
     if not candidates:
         raise RuntimeError(
-            "Aucune adresse IPv4 locale utilisable detectee. Verifier la connexion du Mac ou relancer avec LAN_IP=adresse."
+            tr("no_usable_local_ipv4_address_detected_check_the_mac_s_network_or_rerun_with_bedrock_family_setup_ip_address")
         )
     if len(candidates) == 1:
         candidate = candidates[0]
@@ -513,19 +513,17 @@ def select_lan_ip(configured):
         say("index_type_interface_ip", index=index, **candidate)
     if not sys.stdin.isatty():
         raise RuntimeError(
-            "Choisir une adresse avec bedrock-family setup --ip adresse."
+            tr("choose_an_address_with_bedrock_family_setup_ip_address")
         )
     try:
-        choice = input(
-            "Numero de la connexion utilisee par les joueurs : "
-        ).strip()
+        choice = input(tr("select_the_number_of_the_connection")).strip()
     except EOFError:
         raise RuntimeError(
-            "Choix interrompu. Relancer bedrock-family setup dans un Terminal interactif."
+            tr("selection_interrupted_rerun_bedrock_family_setup_in_an_interactive_terminal")
         )
     if not choice.isdigit() or not 1 <= int(choice) <= len(candidates):
         raise RuntimeError(
-            "Choix invalide. Relancer bedrock-family setup et saisir un numero affiche."
+            tr("invalid_selection_rerun_bedrock_family_setup_and_enter_a_displayed_number")
         )
     return candidates[int(choice) - 1]["ip"]
 
@@ -536,7 +534,7 @@ def config_check():
     settings()
     if cfg.get("EULA", "").upper() != "TRUE":
         raise RuntimeError(
-            "Lire les conditions Minecraft et accepter avec bedrock-family setup --accept-eula."
+            tr("read_the_minecraft_terms_and_accept_them_with_bedrock_family_setup_accept_eula")
         )
     return cfg
 
@@ -605,14 +603,14 @@ def docker_reachable():
 
 def docker_start():
     if not shutil.which("docker"):
-        raise RuntimeError("Installer et ouvrir Docker Desktop.")
+        raise RuntimeError(tr("install_and_open_docker_desktop"))
     if not docker_reachable():
         raw(["/usr/bin/open", "-a", "Docker"], timeout=15)
         end = time.monotonic() + int(os.getenv("TIMEOUT", "120"))
         while not docker_reachable():
             if time.monotonic() > end:
                 raise RuntimeError(
-                    "Docker ne repond pas. Ouvrir Docker Desktop puis lancer bedrock-family doctor."
+                    tr("docker_is_not_responding_open_docker_desktop_then_run_bedrock_family_doctor")
                 )
             time.sleep(2)
     raw(["docker", "compose", "version"])
@@ -688,7 +686,7 @@ def send(command, cid=None, reload=False):
     cid = cid or running()
     if not cid:
         raise RuntimeError(
-            "Serveur arrete : lancer bedrock-family server start."
+            tr("server_is_stopped_run_bedrock_family_server_start")
         )
     since = stamp()
     dc(["exec", "-T", "bedrock", "send-command", command], timeout=15)
@@ -714,7 +712,7 @@ def send(command, cid=None, reload=False):
         re.I,
     ):
         raise RuntimeError(
-            "Le jeu a signale une erreur ; les changements deja enregistres ne sont pas annules."
+            tr("the_game_reported_an_error_already_saved_changes_were_not_rolled_back")
         )
     if reload and not re.search(
         r"(allowlist|whitelist).*reload|reload.*(allowlist|whitelist)",
@@ -722,7 +720,7 @@ def send(command, cid=None, reload=False):
         re.I,
     ):
         raise RuntimeError(
-            "Liste enregistree, mais rechargement non confirme. Lire les messages ou lancer bedrock-family server restart."
+            tr("list_saved_but_reload_was_not_confirmed_check_the_logs_or_run_bedrock_family_server_restart")
         )
     if not text.strip():
         say(
@@ -765,7 +763,7 @@ def apply_game_rules():
 def wait_ready():
     cid = running()
     if not cid:
-        raise RuntimeError("Le conteneur ne fonctionne pas.")
+        raise RuntimeError(tr("the_container_is_not_running"))
     started = raw(
         ["docker", "inspect", "--format", "{{.State.StartedAt}}", cid]
     ).stdout.strip()
@@ -775,10 +773,10 @@ def wait_ready():
             apply_game_rules()
             return
         if not running():
-            raise RuntimeError("Le serveur s est arrete pendant son demarrage.")
+            raise RuntimeError(tr("the_server_stopped_while_starting"))
         time.sleep(2)
     raise RuntimeError(
-        "Demarrage non confirme. Le conteneur peut rester actif ; lire bedrock-family server logs --once."
+        tr("startup_was_not_confirmed_the_container_may_still_be_running_check_bedrock_family_server_logs_once")
     )
 
 
@@ -799,13 +797,13 @@ def up(latest=False):
 def stop():
     dc(["stop", "bedrock"], True)
     if running():
-        raise RuntimeError("Serveur encore actif : sauvegarde a froid refusee.")
+        raise RuntimeError(tr("server_is_still_running_cold_backup_refused"))
 
 
 def connected():
     cid = running()
     if not cid:
-        raise RuntimeError("Lancer bedrock-family server start.")
+        raise RuntimeError(tr("server_is_stopped_run_bedrock_family_server_start"))
     since = stamp()
     dc(["exec", "-T", "bedrock", "send-command", "list"], timeout=15)
     names = None
@@ -816,7 +814,7 @@ def connected():
             break
     if names is None:
         raise RuntimeError(
-            "Liste actuelle non reconnue. Aucun joueur ne sera devine."
+            tr("current_player_list_was_not_recognized_no_players_will_be_guessed")
         )
     text = "\n".join(clean(x) for x in logs(cid).splitlines())
     ids = {
@@ -846,7 +844,7 @@ def connected():
 
 def validate_entries(entries):
     if not isinstance(entries, list):
-        raise RuntimeError("La liste doit commencer par [ et finir par ].")
+        raise RuntimeError(tr("the_list_must_start_with_and_end_with"))
     result = []
     for e in entries:
         if (
@@ -854,7 +852,7 @@ def validate_entries(entries):
             or not isinstance(e.get("name"), str)
             or not e["name"].strip()
         ):
-            raise RuntimeError("Chaque joueur doit avoir un nom.")
+            raise RuntimeError(tr("every_player_must_have_a_name"))
         if any(x in e["name"] for x in ":,\n\r"):
             raise RuntimeError(tr("unsupported_name_name", name=e["name"]))
         if not isinstance(e.get("xuid"), str) or not e["xuid"].isdigit():
@@ -864,7 +862,7 @@ def validate_entries(entries):
         if "ignoresPlayerLimit" in e and not isinstance(
             e["ignoresPlayerLimit"], bool
         ):
-            raise RuntimeError("ignoresPlayerLimit doit valoir true ou false.")
+            raise RuntimeError(tr("ignoresplayerlimit_must_be_true_or_false"))
         result.append(dict(e))
     return result
 
@@ -928,7 +926,7 @@ def access(action):
     if action == "remove":
         name = os.getenv("PLAYER", "").strip()
         if not name:
-            raise RuntimeError('PLAYER="Nom du joueur" attendu.')
+            tr("expected_player_player_name")
         matches = [
             e
             for e in entries
@@ -936,15 +934,15 @@ def access(action):
         ]
         if not matches:
             raise RuntimeError(
-                "Nom introuvable. Voir bedrock-family access show."
+                tr("player_not_found_see_bedrock_family_access_show")
             )
         entries = [e for e in entries if e not in matches]
     if action == "enable" and not entries:
         raise RuntimeError(
-            "Liste vide. Inscrire la famille avant de fermer les entrees."
+            tr("the_list_is_empty_enroll_family_members_before_restricting_access")
         )
     if action == "disable" and os.getenv("CONFIRM") != "yes":
-        raise RuntimeError("Confirmer avec CONFIRM=yes.")
+        raise RuntimeError(tr("confirm_with_confirm"))
     b = (
         ROOT
         / "backups"
@@ -977,17 +975,17 @@ def access(action):
 def archive_filter(info):
     if info.issym() or info.islnk():
         raise RuntimeError(
-            "Lien dans les donnees : verifier avant de sauvegarder."
+            tr("a_link_was_found_in_the_data_inspect_it_before_creating_a_backup")
         )
     return info
 
 
 def backup(restart=True, already_stopped=False):
     if not (ROOT / "data").is_dir():
-        raise RuntimeError("Pas de monde : demarrer une premiere fois.")
+        raise RuntimeError(tr("no_world_found_start_the_server_once_first"))
     active = bool(running())
     if active and already_stopped:
-        raise RuntimeError("Le serveur a redemarre avant la sauvegarde.")
+        raise RuntimeError(tr("the_server_restarted_before_the_backup"))
     if active:
         stop()
     folder = ROOT / "backups"
@@ -1034,11 +1032,11 @@ def safe_members(tar):
             or m.islnk()
             or not (m.isdir() or m.isfile())
         ):
-            raise RuntimeError("Archive non sure : restauration refusee.")
+            raise RuntimeError(tr("unsafe_archive_restore_refused"))
         if path.parts and path.parts[0] == "data":
             result.append(m)
     if not result:
-        raise RuntimeError("Archive sans dossier data.")
+        raise RuntimeError(tr("archive_does_not_contain_a_data_folder"))
     return result
 
 
@@ -1046,7 +1044,7 @@ def restore():
     name = os.getenv("FILE", "")
     if os.getenv("CONFIRM") != "yes" or not name:
         raise RuntimeError(
-            "Restaurer avec bedrock-family backup restore ARCHIVE --confirm."
+            tr("restore_with_bedrock_family_backup_restore_archive_confirm")
         )
     file = Path(name)
     file = file if file.is_absolute() else ROOT / file
@@ -1099,7 +1097,7 @@ def cancel_session(quiet=False):
     with lock("session", True):
         s = state()
         if s.get("status") == "stopping":
-            raise RuntimeError("Fermeture en cours : attendre la fin.")
+            raise RuntimeError(tr("shutdown_is_in_progress_wait_for_it_to_finish"))
         if s.get("status") not in ACTIVE:
             if not quiet:
                 say("no_active_schedule")
@@ -1116,10 +1114,10 @@ def start_session():
         old = state()
         if old.get("status") == "stopping":
             raise RuntimeError(
-                "Fermeture en cours. Lire bedrock-family session logs."
+                tr("shutdown_is_in_progress_check_bedrock_family_session_logs")
             )
         if old.get("status") in ACTIVE and alive(old.get("pid")):
-            raise RuntimeError("Annuler l horaire actif avant de le remplacer.")
+            raise RuntimeError(tr("cancel_the_active_schedule_before_replacing_it"))
         token = uuid.uuid4().hex
         s = {
             "token": token,
@@ -1171,9 +1169,9 @@ def start_session():
         raise
 
 
-def notice(text):
+def notice(text, **values):
     try:
-        send("say " + text)
+        send("say " + tr(text, **values))
     except Exception as exc:
         say("message_not_confirmed_error", error=exc)
 
@@ -1210,9 +1208,8 @@ def session_worker(token):
             if initial:
                 initial = False
                 notice(
-                    "Fin de la partie a "
-                    + target.strftime("%H:%M")
-                    + ". Sauvegarde automatique ensuite."
+                    "finish_the_game_at_time",
+                    time=target.strftime("%H:%M"),
                 )
             actual = target.timestamp() - time.time()
             due = [n for n in pending if actual <= n]
@@ -1224,9 +1221,8 @@ def session_worker(token):
                 if abs(actual - n) > 10:
                     label = "environ " + str(max(1, int(actual))) + " secondes"
                 notice(
-                    "Fin de la partie dans "
-                    + label
-                    + ". Sauvegarde automatique ensuite."
+                    "finish_the_game_in_ellipsis",
+                    label=label,
                 )
             time.sleep(min(1, max(0.05, target.timestamp() - time.time())))
         with lock("maintenance", True):
@@ -1347,7 +1343,7 @@ def game_action(action):
 def setup():
     if os.getenv("EULA", "").upper() != "TRUE":
         raise RuntimeError(
-            "Lire les conditions Minecraft puis ajouter EULA=TRUE si vous les acceptez."
+            tr("read_the_minecraft_terms_then_add_eula_true_if_you_agree")
         )
     ip = select_lan_ip(os.getenv("LAN_IP", "").strip())
     with lock("maintenance"):
@@ -1470,7 +1466,7 @@ def main():
             atomic(p, [])
         if not p.exists():
             raise RuntimeError(
-                "Fichier absent : configurer ou demarrer une premiere fois."
+                tr("file_not_found_and_run_a_first_time")
             )
         raw(
             ["/usr/bin/open"]
@@ -1526,7 +1522,7 @@ def main():
             args.insert(1, "-f")
         p = subprocess.run(dcargs() + args, env=compose_env())
         if p.returncode not in (0, 130):
-            raise RuntimeError("Lecture des messages en echec.")
+            raise RuntimeError(tr("could_not_read_the_messages"))
         return
     if action == "console":
         value = os.getenv("CMD", "").strip()
@@ -1544,7 +1540,7 @@ def main():
         cid = running()
         if not cid:
             raise RuntimeError(
-                "Demarrer le serveur ou utiliser bedrock-family server logs --once."
+                tr("start_the_server_or_use_bedrock_family_server_logs_once")
             )
         say(
             "\n".join(x for x in logs(cid).splitlines() if "xuid" in x.lower())
@@ -1593,7 +1589,7 @@ def main():
         elif action.startswith("allowlist-"):
             access(action[len("allowlist-") :])
         else:
-            raise RuntimeError("Commande inconnue.")
+            raise RuntimeError(tr("unknown_command_in_the_service"))
 
 
 def validate_game_settings(value):

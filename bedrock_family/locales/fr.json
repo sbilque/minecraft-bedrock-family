@@ -189,5 +189,18 @@
   "show_this_help_message_and_exit": "afficher cette aide et quitter",
   "unrecognized_arguments": "arguments non reconnus : %s",
   "invalid_choice": "choix invalide : %(value)r (choisir parmi %(choices)s)",
-  "argument_error": "argument %s : %s"
+  "argument_error": "argument %s : %s",
+  "duration_cannot_be_empty": "La durée ne peut pas être vide.",
+  "duration_must_be_a_positive_amount_of_time": "La durée doit être une durée positive.",
+  "invalid_duration_format": "Format de durée invalide (ex. 45m, 1h, 2h30m).",
+  "invalid_iso_or_clock_time_hh_mm_or_iso_8601": "Heure invalide : HH:MM ou une heure ISO 8601.",
+  "finish_the_game_at_time": "Fin de la partie à {time}. Sauvegarde automatique ensuite.",
+  "finish_the_game_in_ellipsis": "Fin de la partie dans {label}. Sauvegarde automatique ensuite.",
+  "explicitly_accept_the_minecraft_terms": "Acceptez-vous les conditions Minecraft ?",
+  "unknown_command_in_the_cli": "Commande non reconnue.",
+  "select_the_number_of_the_connection": "Numéro de la connexion utilisée par les joueurs : ",
+  "could_not_read_the_messages": "Lecture des messages impossible.",
+  "file_not_found_and_run_a_first_time": "Fichier introuvable : configurez le serveur ou démarrez une première fois.",
+  "read_the_minecraft_terms_then_add_eula_true_if_you_agree": "Lisez les conditions Minecraft puis ajoutez EULA=TRUE si vous les acceptez.",
+  "unknown_command_in_the_service": "Commande inconnue."
 }

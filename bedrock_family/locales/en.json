@@ -189,5 +189,18 @@
   "show_this_help_message_and_exit": "show this help message and exit",
   "unrecognized_arguments": "unrecognized arguments: %s",
   "invalid_choice": "invalid choice: %(value)r (choose from %(choices)s)",
-  "argument_error": "argument %s: %s"
+  "argument_error": "argument %s: %s",
+  "duration_cannot_be_empty": "The duration can't be empty.",
+  "duration_must_be_a_positive_amount_of_time": "The duration must be a positive amount of time.",
+  "invalid_duration_format": "Invalid duration format (e.g. 45m, 1h, 2h30m).",
+  "invalid_iso_or_clock_time_hh_mm_or_iso_8601": "Invalid time: HH:MM or an ISO 8601 datetime.",
+  "finish_the_game_at_time": "End of the game at {time}. Automatic backup afterward.",
+  "finish_the_game_in_ellipsis": "End of the game in {label}. Automatic backup afterward.",
+  "explicitly_accept_the_minecraft_terms": "Do you accept the Minecraft terms?",
+  "unknown_command_in_the_cli": "Unknown command.",
+  "select_the_number_of_the_connection": "Connection number used by players: ",
+  "could_not_read_the_messages": "Could not read the logs.",
+  "file_not_found_and_run_a_first_time": "File not found; configure the server or start it once first.",
+  "read_the_minecraft_terms_then_add_eula_true_if_you_agree": "Read the Minecraft terms, then add EULA=TRUE if you accept them.",
+  "unknown_command_in_the_service": "Unknown command."
 }
