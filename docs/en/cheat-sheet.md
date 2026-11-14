@@ -3,7 +3,7 @@
 On the Mac, open Terminal:
 
 ```sh
-cd ~/minecraft-bedrock-family
+cd ~/MinecraftFamily
 ```
 
 Players use Minecraft Bedrock on iOS or Windows 10/11, on the same local network. Keep the Mac and Docker running.
@@ -12,11 +12,11 @@ Players use Minecraft Bedrock on iOS or Windows 10/11, on the same local network
 
 | I want to… | I type… |
 |---|---|
-| Start with the usual finishing time | make session |
-| Choose another time today | make session STOP_AT=21:00 |
-| Stop now and back up | make session-stop |
-| Check the planned time | make session-status |
-| Cancel the timer without stopping | make session-cancel |
+| Start with the usual finishing time | bedrock-family session start |
+| Choose another time today | bedrock-family session start --until 21:00 |
+| Stop now and back up | bedrock-family session stop |
+| Check the planned time | bedrock-family session status |
+| Cancel the timer without stopping | bedrock-family session cancel |
 
 Reminders: 15 min, 5 min, 1 min and 30 s before the end. Then shutdown and backup. A time already past today is refused.
 
@@ -24,9 +24,9 @@ Reminders: 15 min, 5 min, 1 min and 30 s before the end. Then shutdown and backu
 
 | I want to… | I type… |
 |---|---|
-| Save 20:30 | make session-default TIME=20:30 |
-| Show the usual time | make session-default-show |
-| Return to 19:00 | make session-default-reset |
+| Save 20:30 | bedrock-family session default set 20:30 |
+| Show the usual time | bedrock-family session default show |
+| Return to 19:00 | bedrock-family session default reset |
 
 Changing the usual time does not move an active timer. Cancel, then schedule again to move it.
 
@@ -34,17 +34,17 @@ Changing the usual time does not move an active timer. Cancel, then schedule aga
 
 | I want to… | I type… |
 |---|---|
-| See worlds and the current choice | make worlds |
-| Choose an existing world | make world-default LEVEL="World Name" |
+| See worlds and the current choice | bedrock-family world list |
+| Choose an existing world | bedrock-family world use "World Name" |
 
-The choice takes effect on the next make up or make apply, not during a game.
+The choice takes effect on the next `bedrock-family server start` or `bedrock-family settings apply`, not during a game.
 
 ## Back up
 
 | I want to… | I type… |
 |---|---|
-| Back up now | make backup |
-| Open the archives | make open-backups |
+| Back up now | bedrock-family backup create |
+| Open the archives | bedrock-family open backups |
 
 Backing up can interrupt play. Copy archives to another disk. Do not delete data: it holds the world.
 
@@ -54,25 +54,25 @@ Backing up can interrupt play. Copy archives to another disk. Do not delete data
 
 ## Welcome a player
 
-1. make allowlist-disable CONFIRM=yes
+1. bedrock-family access disable --confirm
 2. Have the player join in Minecraft Bedrock.
-3. make allowlist-preview
-4. Check names, then make allowlist-sync
-5. make allowlist-enable
+3. bedrock-family access preview
+4. Check names, then bedrock-family access sync
+5. bedrock-family access enable
 
-Show enrolled players: make allowlist-show.
+Show enrolled players: bedrock-family access show.
 
-Remove someone: make allowlist-remove PLAYER="Player Name". Builds stay. If still connected, make restart ends the connections. Do not sync while they remain connected.
+Remove someone: bedrock-family access remove "Player Name". Builds stay. If still connected, bedrock-family server restart ends the connections. Do not sync while they remain connected.
 
 ## Change the game
 
 | I want to… | I type… |
 |---|---|
-| Keep inventory at death | make keep-inventory VALUE=on |
-| Choose easy difficulty | make difficulty LEVEL=easy |
-| Let one sleeper skip the night | make sleep-one |
-| Use survival as the default mode | make gamemode MODE=survival |
-| View saved choices | make game-show |
+| Keep inventory at death | bedrock-family settings set keep-inventory on |
+| Choose easy difficulty | bedrock-family settings set difficulty easy |
+| Let one sleeper skip the night | bedrock-family settings set sleep-one |
+| Use survival as the default mode | bedrock-family settings set gamemode survival |
+| View saved choices | bedrock-family settings show |
 
 For switches, off disables the option. Difficulties: peaceful, easy, normal, hard. Modes: survival, creative, adventure. The guide explains other choices.
 
@@ -82,9 +82,9 @@ Cheats are initially enabled and disable world achievements. Rule changes may in
 
 | I want to… | I type… |
 |---|---|
-| Read server messages | make logs-once |
-| Read shutdown messages | make session-logs |
-| Check Docker and Python | make doctor |
-| All commands | make |
+| Read server messages | bedrock-family server logs --once |
+| Read shutdown messages | bedrock-family session logs |
+| Check Docker and Python | bedrock-family doctor |
+| All commands | bedrock-family --help |
 
 After restarting the Mac, check and reschedule the finishing time. A failure can prevent stopping or backing up: read the messages before assuming success.

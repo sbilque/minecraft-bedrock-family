@@ -11,14 +11,14 @@ Ne supprimez pas le monde ni les réglages pour essayer de réparer.
 3. Réessayez :
 
 ```sh
-make up
+bedrock-family server start
 ```
 
 Si cela échoue :
 
 ```sh
-make logs-once
-make doctor
+bedrock-family server logs --once
+bedrock-family doctor
 ```
 
 Le programme essaie aussi d’afficher les derniers messages après une erreur. Ne supposez pas qu’une commande a réussi parce qu’elle a été envoyée.
@@ -43,20 +43,20 @@ Sur iOS, vérifiez aussi l’autorisation Réseau local de Minecraft. Sur le Mac
 
 ## Un identifiant de joueur manque
 
-Demandez au joueur de quitter puis de rejoindre le monde. Refaites `make allowlist-preview`, puis `make allowlist-sync` si les noms sont corrects.
+Demandez au joueur de quitter puis de rejoindre le monde. Refaites `bedrock-family access preview`, puis `bedrock-family access sync` si les noms sont corrects.
 
 ## L’heure de fin ne semble plus active
 
 ```sh
-make session-status
-make session-logs
+bedrock-family session status
+bedrock-family session logs
 ```
 
-Après redémarrage du Mac ou arrêt de Docker, ne comptez pas sur l’ancienne programmation. Vérifiez, annulez avec `make session-cancel`, puis relancez `make session`.
+Après redémarrage du Mac ou arrêt de Docker, ne comptez pas sur l’ancienne programmation. Vérifiez, annulez avec `bedrock-family session cancel`, puis relancez `bedrock-family session start`.
 
 ## Une sauvegarde échoue
 
-Lisez les messages avec `make session-logs` ou `make logs-once`. Ne supprimez pas les anciennes archives et ne supposez pas que la dernière est complète. Une erreur après fermeture peut laisser le serveur arrêté : c’est volontaire.
+Lisez les messages avec `bedrock-family session logs` ou `bedrock-family server logs --once`. Ne supprimez pas les anciennes archives et ne supposez pas que la dernière est complète. Une erreur après fermeture peut laisser le serveur arrêté : c’est volontaire.
 
 ## Demander de l’aide
 

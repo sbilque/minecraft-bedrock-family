@@ -1,12 +1,10 @@
 """Tests locaux : bibliotheque standard, aucun moteur Docker ou reseau."""
 import contextlib
 import datetime as dt
-import importlib.util
 import io
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tarfile
@@ -17,8 +15,8 @@ from unittest import mock
 
 PACKAGE=Path(__file__).resolve().parents[1]
 REAL_ENV=dict(os.environ)
-spec=importlib.util.spec_from_file_location('family_manage',PACKAGE/'scripts'/'manage.py')
-m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+sys.path.insert(0,str(PACKAGE))
+from bedrock_family import manage as m
 
 class LocalTests(unittest.TestCase):
     def setUp(self):
@@ -121,7 +119,7 @@ class LocalTests(unittest.TestCase):
         self.assertTrue(any('Ethernet (en5)' in call.args[0] for call in say.call_args_list))
     def test_multiple_ipv4_addresses_require_explicit_choice_without_terminal(self):
         candidates=[{'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'},{'ip':'10.0.0.5','interface':'en5','type':'Ethernet'}]
-        with mock.patch.object(m,'ipv4_candidates',return_value=candidates),mock.patch.object(m.sys,'stdin',types.SimpleNamespace(isatty=lambda:False)),mock.patch.object(m,'say'),self.assertRaisesRegex(RuntimeError,'LAN_IP='):
+        with mock.patch.object(m,'ipv4_candidates',return_value=candidates),mock.patch.object(m.sys,'stdin',types.SimpleNamespace(isatty=lambda:False)),mock.patch.object(m,'say'),self.assertRaisesRegex(RuntimeError,'setup --ip'):
             m.select_lan_ip('')
     def test_explicit_ipv4_skips_detection(self):
         with mock.patch.object(m,'ipv4_candidates',side_effect=AssertionError('Detection should not run')):
@@ -317,59 +315,89 @@ else:print('ok')
 """
 
 class MakeTests(unittest.TestCase):
-    def test_all_targets_dry_run(self):
-        result=subprocess.run(['make','--no-print-directory','-n','-C',str(PACKAGE)]+list(m.PUBLIC_ACTIONS)+['test','lint','verify'],capture_output=True,text=True,env=REAL_ENV)
+    def test_make_only_exposes_contributor_targets(self):
+        source=(PACKAGE/'Makefile').read_text(encoding='utf-8')
+        targets=next(line.split(':',1)[1].split() for line in source.splitlines() if line.startswith('.PHONY:'))
+        self.assertEqual(set(targets),{'help','test','lint','verify','docs'})
+        result=subprocess.run(['make','--no-print-directory','-n','-C',str(PACKAGE)]+targets,capture_output=True,text=True,env=REAL_ENV)
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertNotIn('sudo ',result.stdout)
-    def test_help_does_not_need_docker(self):
-        result=subprocess.run(['make','--no-print-directory','-C',str(PACKAGE),'help'],capture_output=True,text=True,env=REAL_ENV)
-        self.assertEqual(result.returncode,0,result.stderr);self.assertIn('make game-show',result.stdout)
 
-class FakeDockerTests(unittest.TestCase):
+    def test_make_help_only_shows_contributor_tasks(self):
+        result=subprocess.run(['make','--no-print-directory','-C',str(PACKAGE),'help'],capture_output=True,text=True,env=REAL_ENV)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('make verify',result.stdout)
+        self.assertNotIn('make up',result.stdout)
+
+class FakeCliTests(unittest.TestCase):
     def setUp(self):
-        tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup);base=Path(tmp.name);self.root=base/'minecraft-famille';(self.root/'scripts').mkdir(parents=True);(self.root/'docs').mkdir()
-        for name in ('Makefile', 'compose.yaml', 'scripts/manage.py', 'docs/en/commands.txt', 'docs/fr/commands.txt'):
-            target = self.root / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(PACKAGE / name, target)
-        shutil.copy2(PACKAGE / 'family-settings.example.json', self.root / 'family-settings.json')
+        tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup);base=Path(tmp.name);self.root=base/'minecraft-famille'
         binary=base/'bin';binary.mkdir();file=binary/'docker';file.write_text(STUB);file.chmod(0o755)
-        self.env=dict(REAL_ENV);self.env.update(PATH=str(binary)+os.pathsep+REAL_ENV['PATH'],FAKE_STATE=str(base/'state.json'),PYTHONDONTWRITEBYTECODE='1')
-        result=self.make('setup','LAN_IP=192.168.1.50','EULA=TRUE');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-    def make(self,*args,env=None):return subprocess.run(['make','--no-print-directory','-C',str(self.root),*args],capture_output=True,text=True,env=env or self.env,timeout=25)
-    def test_make_up_applies_rules_and_reads_logs(self):
-        for target in ('check','up','status','logs-once'):
-            result=self.make(target);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-        result=self.make('up');self.assertIn('playerssleepingpercentage has been updated to 0',result.stdout)
+        self.env=dict(REAL_ENV);self.env.update(PATH=str(binary)+os.pathsep+REAL_ENV['PATH'],FAKE_STATE=str(base/'state.json'),PYTHONDONTWRITEBYTECODE='1',PYTHONPATH=str(PACKAGE))
+        result=self.cli('init',str(self.root));self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result=self.cli('-C',str(self.root),'setup','--accept-eula','--ip','192.168.1.50');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+    def cli(self,*args,env=None):return subprocess.run([sys.executable,'-m','bedrock_family',*args],capture_output=True,text=True,env=env or self.env,timeout=25,cwd=PACKAGE)
+    def test_help_and_version_work_without_a_server(self):
+        result=self.cli('--help');self.assertEqual(result.returncode,0,result.stderr);self.assertIn('bedrock-family',result.stdout);self.assertIn('world',result.stdout)
+        result=self.cli('--version');self.assertEqual(result.returncode,0,result.stderr);self.assertIn('0.1.0',result.stdout)
+    def test_init_preserves_existing_server_configuration(self):
+        compose=self.root/'compose.yaml';original=compose.read_text()
+        result=self.cli('init',str(self.root));self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertEqual(compose.read_text(),original)
+    def test_init_template_uses_an_instance_specific_compose_project(self):
+        contents=(self.root/'compose.yaml').read_text()
+        self.assertNotIn('name: minecraft-bedrock-family',contents)
+    def test_server_commands_start_and_read_logs(self):
+        for args in (('-C',str(self.root),'check'),('-C',str(self.root),'server','start'),('-C',str(self.root),'server','status'),('-C',str(self.root),'server','logs','--once')):
+            result=self.cli(*args);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result=self.cli('-C',str(self.root),'server','start')
+        self.assertIn('playerssleepingpercentage has been updated to 0',result.stdout)
         self.assertIn('keepinventory has been updated to true',result.stdout)
-    def test_make_failure_shows_docker_logs(self):
-        env=dict(self.env);env['FAKE_FAIL']='yes';result=self.make('up',env=env)
-        self.assertNotEqual(result.returncode,0);self.assertIn('SIMULATED_FAILURE',result.stdout);self.assertIn('SIMULATED_DOCKER_LOGS',result.stdout)
-    def test_game_settings_and_time_do_not_overwrite_each_other(self):
-        for args in [('cheats','VALUE=off'),('difficulty','LEVEL=normale'),('sleep','PERCENT=50'),('session-default','TIME=20:30')]:
-            result=self.make(*args);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+    def test_cli_surfaces_docker_failures(self):
+        env=dict(self.env);env['FAKE_FAIL']='yes';result=self.cli('-C',str(self.root),'server','start',env=env)
+        self.assertNotEqual(result.returncode,0);self.assertIn('SIMULATED_FAILURE',result.stdout+result.stderr)
+        self.assertIn('SIMULATED_DOCKER_LOGS',result.stdout)
+    def test_settings_and_session_defaults_are_separate(self):
+        for args in (('settings','set','cheats','off'),('settings','set','difficulty','normale'),('settings','set','sleep','50'),('session','default','set','20:30')):
+            result=self.cli('-C',str(self.root),*args);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         cfg=json.loads((self.root/'family-settings.json').read_text())
         self.assertEqual(cfg['stop_at'],'20:30');self.assertFalse(cfg['game']['cheats']);self.assertEqual(cfg['game']['difficulty'],'normal');self.assertEqual(cfg['game']['sleep_percent'],50)
-    def test_world_commands_show_and_select_world_without_starting_server(self):
+    def test_world_list_and_use(self):
         world=self.root/'data'/'worlds'/'Survie 2';world.mkdir(parents=True)
-        result=self.make('worlds');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result=self.cli('-C',str(self.root),'world','list');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         self.assertIn('Survie 2',result.stdout);self.assertIn('Famille',result.stdout)
-        result=self.make('world-default','LEVEL=Survie 2');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result=self.cli('-C',str(self.root),'world','use','Survie 2');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         self.assertIn('LEVEL_NAME=Survie 2',(self.root/'.env').read_text())
-        self.assertIn('prochain make up ou make apply',result.stdout)
-    def test_unconfirmed_game_rule_is_failure(self):
-        env=dict(self.env);env['FAKE_REPLY_ERROR']='yes';result=self.make('up',env=env)
-        self.assertNotEqual(result.returncode,0);self.assertIn('SIMULATED_DOCKER_LOGS',result.stdout)
+        self.assertIn('bedrock-family server start',result.stdout)
+    def test_world_create_sets_name_and_starts_server(self):
+        result=self.cli('-C',str(self.root),'world','create','Nouveau monde')
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('LEVEL_NAME=Nouveau monde',(self.root/'.env').read_text())
+        self.assertTrue(json.loads(Path(self.env['FAKE_STATE']).read_text())['running'])
+    def test_world_create_requires_confirmation_before_restarting(self):
+        result=self.cli('-C',str(self.root),'server','start')
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result=self.cli('-C',str(self.root),'world','create','Nouveau monde')
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('--yes',result.stderr)
+        self.assertNotIn('LEVEL_NAME=Nouveau monde',(self.root/'.env').read_text())
+        result=self.cli('-C',str(self.root),'world','create','Nouveau monde','--yes')
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('LEVEL_NAME=Nouveau monde',(self.root/'.env').read_text())
+    def test_access_and_restore_require_confirmation_flags(self):
+        result=self.cli('-C',str(self.root),'access','disable')
+        self.assertNotEqual(result.returncode,0);self.assertIn('--confirm',result.stderr)
+        result=self.cli('-C',str(self.root),'backup','restore','missing.tar.gz')
+        self.assertNotEqual(result.returncode,0);self.assertIn('--confirm',result.stderr)
+    def test_setup_requires_explicit_eula_acceptance_noninteractively(self):
+        result=self.cli('-C',str(self.root),'setup','--ip','192.168.1.50')
+        self.assertNotEqual(result.returncode,0);self.assertIn('--accept-eula',result.stderr)
 
 
 class CommunityLayoutTests(unittest.TestCase):
     def test_bilingual_help(self):
         for language, expected in [('en', 'MINECRAFT BEDROCK FAMILY'), ('fr', 'MINECRAFT EN FAMILLE')]:
-            env = dict(REAL_ENV)
-            env['LANGUAGE'] = language
-            result = subprocess.run(['make', '--no-print-directory', '-C', str(PACKAGE), 'help'], capture_output=True, text=True, env=env)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(expected, result.stdout)
+            content=(PACKAGE/'docs'/language/'commands.txt').read_text(encoding='utf-8')
+            self.assertIn(expected,content)
 
     def test_runtime_configuration_is_ignored(self):
         ignored = (PACKAGE / '.gitignore').read_text(encoding='utf-8').splitlines()

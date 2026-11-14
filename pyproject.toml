@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minecraft-bedrock-family"
+version = "0.1.0"
+description = "A family-friendly Minecraft Bedrock server manager for macOS"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Minecraft Bedrock Family contributors"}]
+urls = {Homepage = "https://github.com/sbilque/minecraft-bedrock-family", Repository = "https://github.com/sbilque/minecraft-bedrock-family", Documentation = "https://github.com/sbilque/minecraft-bedrock-family/tree/main/docs"}
+classifiers = [
+  "Environment :: Console",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Topic :: Games/Entertainment",
+]
+dependencies = []
+
+[project.scripts]
+bedrock-family = "bedrock_family.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["bedrock_family*"]
+
+[tool.setuptools.package-data]
+bedrock_family = ["templates/*.yaml"]

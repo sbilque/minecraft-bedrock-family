@@ -17,3 +17,6 @@ __pycache__/
 *.py[cod]
 *.partial
 .DS_Store
+build/
+dist/
+*.egg-info/

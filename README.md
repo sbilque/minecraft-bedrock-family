@@ -14,12 +14,16 @@ Cheats are enabled too. This disables world achievements; turning cheats off lat
 
 ## Get started
 
-Install Docker Desktop, Python and make on the Mac, then follow the [installation tutorial](docs/en/installation.md). It walks through each step without requiring Git or Docker knowledge.
+Install Docker Desktop, Python and pipx on the Mac, then follow the [installation tutorial](docs/en/installation.md). It walks through each step without requiring Git or Docker knowledge.
 
-Already set up the Mac? From the project folder in Terminal, run:
+Already set up the Mac? Install the CLI, create a server folder and start a game:
 
 ```sh
-make session
+pipx install minecraft-bedrock-family
+bedrock-family init ~/MinecraftFamily
+cd ~/MinecraftFamily
+bedrock-family setup
+bedrock-family session start
 ```
 
 The server starts. Before the finishing time, players receive reminders. The server then stops, backs up the world and stays off.
@@ -27,7 +31,7 @@ The server starts. Before the finishing time, players receive reminders. The ser
 ## Choose a finishing time
 
 ```sh
-make session-default TIME=20:30
+bedrock-family session default set 20:30
 ```
 
 This saves the usual time for future games. Without a custom setting, the finishing time is 19:00.
@@ -35,7 +39,7 @@ This saves the usual time for future games. Without a custom setting, the finish
 For a different time today only:
 
 ```sh
-make session STOP_AT=21:00
+bedrock-family session start --until 21:00
 ```
 
 Reminders arrive 15 minutes, 5 minutes, 1 minute and 30 seconds before the end. A time already past today is refused.
@@ -44,19 +48,21 @@ Reminders arrive 15 minutes, 5 minutes, 1 minute and 30 seconds before the end. 
 
 | I want to… | I type… |
 |---|---|
-| Start with a finishing time | `make session` |
-| Stop now and back up | `make session-stop` |
-| Check the planned time | `make session-status` |
-| Cancel the timer without stopping | `make session-cancel` |
-| Make a backup | `make backup` |
-| Open the backups | `make open-backups` |
-| Show help | `make` |
+| Start with a finishing time | `bedrock-family session start` |
+| Stop now and back up | `bedrock-family session stop` |
+| Check the planned time | `bedrock-family session status` |
+| Cancel the timer without stopping | `bedrock-family session cancel` |
+| Make a backup | `bedrock-family backup create` |
+| Open the backups | `bedrock-family open backups` |
+| Show help | `bedrock-family --help` |
 
 ## Before the first game
 
 The family settings are ready: keep inventory after death, easy difficulty, one sleeping player to skip the night and survival mode.
 
 Keep the Mac and Docker running during play. After restarting the Mac, check and schedule the finishing time again. Never delete `data`: it contains the world.
+
+`make test`, `make lint`, `make verify` and `make docs` are for project contributors only.
 
 ## More help
 

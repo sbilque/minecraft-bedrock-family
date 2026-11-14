@@ -2,51 +2,49 @@
 
 [Accueil](../../README.fr.md) · [English](../en/installation.md)
 
-Le serveur est installé sur le Mac avec puce Apple Silicon. Les joueurs le rejoignent depuis Minecraft Bedrock sur iOS ou Windows 10/11, sur le même réseau local.
+Le serveur fonctionne sur le Mac avec puce Apple Silicon. Les joueurs le rejoignent depuis Minecraft Bedrock sur iOS ou Windows 10/11, sur le même réseau local.
 
 ## 1. Préparer le Mac
 
-Il faut Docker Desktop pour Apple Silicon, Python 3.9 ou plus récent, et make. Une version actuelle de Python est recommandée.
+Il faut Docker Desktop pour Apple Silicon, Python 3.9 ou plus récent, et pipx. Une version actuelle de Python est recommandée.
 
 - [Installer Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/), puis l’ouvrir.
 - [Installer Python pour macOS](https://www.python.org/downloads/macos/) s’il manque.
+- [Installer pipx](https://pipx.pypa.io/stable/installation/) pour installer le CLI sans make.
 - Ouvrir Terminal : c’est l’application dans laquelle vous saisirez les commandes.
 
 Vérifiez les outils :
 
 ```sh
 python3 --version
-make --version
+pipx --version
 docker compose version
 ```
 
-Si make manque, saisissez `xcode-select --install`, puis suivez les instructions Apple. Aucun module Python supplémentaire n’est nécessaire pour jouer.
+## 2. Installer le CLI et préparer le dossier serveur
 
-## 2. Ranger le projet
-
-Sur GitHub, choisissez Code > Download ZIP. Décompressez le fichier. Renommez le dossier `minecraft-bedrock-family` et placez-le dans votre dossier personnel.
-
-Dans Terminal :
+Installez le paquet publié, puis initialisez le dossier qui contiendra le monde, les réglages et les sauvegardes :
 
 ```sh
-cd ~/minecraft-bedrock-family
-make verify
+pipx install minecraft-bedrock-family
+bedrock-family init ~/MinecraftFamille
+cd ~/MinecraftFamille
 ```
 
-Ce contrôle ne lance pas de partie. Ne remplacez jamais un dossier qui contient déjà votre monde sans l’avoir sauvegardé.
+Pour adopter un dossier existant, utilisez son chemin avec `-C` et ne le déplacez pas : `bedrock-family -C ~/minecraft-bedrock-family init`. L’initialisation conserve les fichiers présents et ne remplace pas le monde.
 
 ## 3. Détecter l’adresse du Mac et démarrer
 
-Lisez les [conditions Minecraft](https://www.minecraft.net/eula) : `EULA=TRUE` signifie que vous les acceptez. `make setup` détecte l’adresse IPv4 du Mac. Si plusieurs connexions sont disponibles, il affiche leur type (par exemple Wi-Fi ou Ethernet) et vous demande laquelle les joueurs utiliseront. Connectez les appareils des joueurs au même réseau que cette connexion. Si possible, demandez à la box de toujours donner la même adresse au Mac.
+Lisez les [conditions Minecraft](https://www.minecraft.net/eula). En lançant `bedrock-family setup --accept-eula`, vous confirmez les accepter. Le CLI détecte l’adresse IPv4 du Mac. Si plusieurs connexions sont disponibles, il affiche leur type (par exemple Wi-Fi ou Ethernet) et vous demande laquelle les joueurs utiliseront. Connectez les appareils des joueurs au même réseau que cette connexion. Si possible, demandez à la box de toujours donner la même adresse au Mac.
 
-Vous pouvez aussi indiquer directement une adresse si vous savez laquelle choisir. Par exemple : `LAN_IP=192.168.1.50`. Cette valeur remplace la détection.
+Vous pouvez aussi fournir directement une adresse connue : `bedrock-family setup --accept-eula --ip 192.168.1.50`. Cette valeur remplace la détection.
 
 Le projet active la triche par défaut : les succès du monde sont désactivés. Gardez une sauvegarde avant d’utiliser un monde existant.
 
 ```sh
-make setup EULA=TRUE
-make check
-make up
+bedrock-family setup --accept-eula
+bedrock-family check
+bedrock-family server start
 ```
 
 Attendez la confirmation du démarrage. Le premier lancement télécharge le serveur et crée le monde ; cela peut prendre quelques minutes. Ne saisissez pas `sudo` et n’ouvrez pas de ports Internet sur la box.
@@ -58,7 +56,7 @@ Connectez l’appareil au même réseau local que le Mac. Ouvrez Minecraft Bedro
 | Champ | Valeur |
 |---|---|
 | Nom | Minecraft Family |
-| Adresse | L’adresse IPv4 affichée par `make setup` |
+| Adresse | L’adresse IPv4 affichée par `bedrock-family setup` |
 | Port | 19132 |
 
 Utilisez un compte Microsoft distinct par joueur. Pour les enfants, autorisez le multijoueur dans les réglages du compte Xbox/Microsoft.
@@ -72,10 +70,10 @@ Ne saisissez pas `localhost`, l’adresse publique de la box ou `http://` devant
 Au premier accueil, les personnes du réseau local qui se connectent avec un compte Microsoft peuvent entrer. Faites venir les personnes voulues, puis :
 
 ```sh
-make allowlist-preview
-make allowlist-sync
-make allowlist-enable
-make version-pin
+bedrock-family access preview
+bedrock-family access sync
+bedrock-family access enable
+bedrock-family version pin
 ```
 
 Vérifiez les noms avant `sync`. L’activation de la liste peut couper la partie ; les inscrits pourront revenir. `version-pin` garde la version du serveur qui vient de fonctionner.
@@ -83,14 +81,14 @@ Vérifiez les noms avant `sync`. L’activation de la liste peut couper la parti
 ## 6. Lancer la prochaine partie
 
 ```sh
-make session-default TIME=20:30
-make session
+bedrock-family session default set 20:30
+bedrock-family session start
 ```
 
 La première ligne mémorise l’heure de fin. La seconde démarre la partie d’aujourd’hui. Après les rappels, le serveur s’arrête, sauvegarde et reste éteint.
 
 Gardez le Mac éveillé et Docker ouvert. Vous pouvez fermer Terminal, mais pas votre session macOS. Après un redémarrage, vérifiez le serveur et programmez à nouveau la fin de partie.
 
-Pour arrêter maintenant et sauvegarder : `make session-stop`.
+Pour arrêter maintenant et sauvegarder : `bedrock-family session stop`.
 
 [Utiliser le serveur](guide.md) · [Un problème ?](troubleshooting.md)

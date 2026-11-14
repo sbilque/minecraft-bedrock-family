@@ -14,12 +14,16 @@ La triche est aussi activée. Elle désactive les succès du monde ; la désacti
 
 ## Commencer
 
-Installez Docker Desktop, Python et make sur le Mac, puis suivez le [tutoriel d’installation](docs/fr/installation.md). Il explique chaque étape, sans demander de connaître Git ou Docker.
+Installez Docker Desktop, Python et pipx sur le Mac, puis suivez le [tutoriel d’installation](docs/fr/installation.md). Il explique chaque étape, sans demander de connaître Git ou Docker.
 
-Vous avez déjà préparé le Mac ? Dans Terminal, depuis le dossier du projet :
+Vous avez déjà préparé le Mac ? Installez le CLI, créez un dossier de serveur, puis démarrez une partie :
 
 ```sh
-make session
+pipx install minecraft-bedrock-family
+bedrock-family init ~/MinecraftFamille
+cd ~/MinecraftFamille
+bedrock-family setup
+bedrock-family session start
 ```
 
 Le serveur démarre. À l’heure prévue, les joueurs sont prévenus, le serveur s’arrête et le monde est sauvegardé. Le serveur reste ensuite éteint.
@@ -27,7 +31,7 @@ Le serveur démarre. À l’heure prévue, les joueurs sont prévenus, le serveu
 ## Choisir l’heure de fin
 
 ```sh
-make session-default TIME=20:30
+bedrock-family session default set 20:30
 ```
 
 Ce choix est conservé pour les prochaines parties. Sans personnalisation, l’heure de fin est 19 h.
@@ -35,7 +39,7 @@ Ce choix est conservé pour les prochaines parties. Sans personnalisation, l’h
 Pour finir à une autre heure aujourd’hui seulement :
 
 ```sh
-make session STOP_AT=21:00
+bedrock-family session start --until 21:00
 ```
 
 Les rappels arrivent 15 minutes, 5 minutes, 1 minute et 30 secondes avant la fin. Une heure déjà passée aujourd’hui est refusée.
@@ -44,19 +48,21 @@ Les rappels arrivent 15 minutes, 5 minutes, 1 minute et 30 secondes avant la fin
 
 | Je veux… | Je saisis… |
 |---|---|
-| Démarrer avec une heure de fin | `make session` |
-| Arrêter maintenant et sauvegarder | `make session-stop` |
-| Vérifier l’heure prévue | `make session-status` |
-| Annuler l’heure de fin sans arrêter | `make session-cancel` |
-| Faire une sauvegarde | `make backup` |
-| Ouvrir les sauvegardes | `make open-backups` |
-| Afficher l’aide en français | `make LANGUAGE=fr` |
+| Démarrer avec une heure de fin | `bedrock-family session start` |
+| Arrêter maintenant et sauvegarder | `bedrock-family session stop` |
+| Vérifier l’heure prévue | `bedrock-family session status` |
+| Annuler l’heure de fin sans arrêter | `bedrock-family session cancel` |
+| Faire une sauvegarde | `bedrock-family backup create` |
+| Ouvrir les sauvegardes | `bedrock-family open backups` |
+| Afficher l’aide | `bedrock-family --help` |
 
 ## Avant la première partie
 
 Les réglages familiaux sont prêts : inventaire conservé à la mort, difficulté facile, un seul joueur au lit pour passer la nuit et mode survie.
 
 Gardez le Mac et Docker allumés pendant les parties. Après un redémarrage du Mac, vérifiez puis reprogrammez l’heure de fin. Ne supprimez pas `data` : ce dossier contient le monde.
+
+Les commandes `make test`, `make lint`, `make verify` et `make docs` sont réservées aux contributions au projet.
 
 ## Pour aller plus loin
 

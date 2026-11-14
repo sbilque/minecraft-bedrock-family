@@ -11,14 +11,14 @@ Do not delete the world or settings as a troubleshooting step.
 3. Retry:
 
 ```sh
-make up
+bedrock-family server start
 ```
 
 If it fails:
 
 ```sh
-make logs-once
-make doctor
+bedrock-family server logs --once
+bedrock-family doctor
 ```
 
 The manager also tries to show recent messages after an error. A sent command is not necessarily a successful command.
@@ -43,20 +43,20 @@ On iOS, also check Minecraft's Local Network permission. On the Mac, allow Docke
 
 ## A player identifier is missing
 
-Ask the player to leave and rejoin. Retry `make allowlist-preview`, then `make allowlist-sync` if the names are correct.
+Ask the player to leave and rejoin. Retry `bedrock-family access preview`, then `bedrock-family access sync` if the names are correct.
 
 ## The finishing time seems inactive
 
 ```sh
-make session-status
-make session-logs
+bedrock-family session status
+bedrock-family session logs
 ```
 
-After restarting the Mac or stopping Docker, do not rely on the old timer. Check, cancel with `make session-cancel`, then run `make session` again.
+After restarting the Mac or stopping Docker, do not rely on the old timer. Check, cancel with `bedrock-family session cancel`, then run `bedrock-family session start` again.
 
 ## A backup fails
 
-Read `make session-logs` or `make logs-once`. Keep older archives and do not assume the latest one is complete. An error after shutdown can leave the server off intentionally.
+Read `bedrock-family session logs` or `bedrock-family server logs --once`. Keep older archives and do not assume the latest one is complete. An error after shutdown can leave the server off intentionally.
 
 ## Ask for help
 

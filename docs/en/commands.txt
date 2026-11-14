@@ -1,155 +1,139 @@
 MINECRAFT BEDROCK FAMILY
 
-In Terminal: cd ~/minecraft-bedrock-family
-Players: Minecraft Bedrock on iOS or Windows 10/11, on the same local network.
+Install the CLI:
+  pipx install minecraft-bedrock-family
+  bedrock-family init ~/MinecraftFamily
+  cd ~/MinecraftFamily
+  bedrock-family setup --accept-eula
 
-INSTALL
-  make setup EULA=TRUE
-    Detect the Mac's IPv4 address and accept Minecraft terms.
-    If several connections exist, choose Wi-Fi, Ethernet or another.
-  make check
-    Check settings and Docker.
+Full help: bedrock-family --help.
+Run the commands below from the server folder.
+
+SERVER AND GAMES
+  bedrock-family server start
+    Start without scheduling a stop.
+  bedrock-family session start
+    Start and schedule the usual finishing time.
+  bedrock-family session start --until 21:00
+    Choose a finishing time for this game only.
+  bedrock-family session status
+    Check the planned time and timer.
+  bedrock-family session cancel
+    Cancel the timer without stopping.
+  bedrock-family session stop
+    Stop now, back up and leave the server off.
+  bedrock-family session logs
+    Read shutdown and backup messages.
+  bedrock-family server stop
+    Stop without an automatic backup.
+  bedrock-family server restart
+    Restart while keeping world files.
+  bedrock-family server down
+    Remove containers; keep the world.
+  bedrock-family server status
+    See the server state.
+  bedrock-family server logs [--once] [--tail 100]
+    Follow messages or show them once.
+  bedrock-family server console "say Hello"
+    Send a game command.
 
 FINISHING TIME
-  make session
-    Start today's game with the usual finishing time.
-  make session STOP_AT=21:00
-    Choose a different time for this game only.
-  make session-status
-    Check the timer.
-  make session-cancel
-    Cancel the timer without stopping.
-  make session-stop
-    Stop now and back up. Leave the server off.
-  make session-logs
-    Read shutdown and backup messages.
-  make session-default TIME=20:30
-    Save the usual finishing time.
-  make session-default-show
+  bedrock-family session default show
     Show the usual time.
-  make session-default-reset
+  bedrock-family session default set 20:30
+    Save a new usual time.
+  bedrock-family session default reset
     Return to 19:00.
 
 WORLDS
-  make worlds
+  bedrock-family world list
     Show available worlds and the default.
-  make world-default LEVEL="World Name"
-    Choose an existing world; apply with make up or make apply.
+  bedrock-family world use "World Name"
+    Choose an existing world for the next start.
+  bedrock-family world create "New World"
+    Create and start a new world.
+    If a server is running, confirm its restart with --yes.
 
 GAME RULES
-  make cheats VALUE=on
-    Enable cheats; VALUE=off disables them. Cheats disable achievements.
-  make keep-inventory VALUE=on
-    Keep inventory after death; VALUE=off disables this.
-  make difficulty LEVEL=easy
-    Choices: peaceful, easy, normal, hard. French names also work.
-  make sleep PERCENT=50
-    Choose a percentage from 0 to 100. Even 0 needs one player in bed.
-  make sleep-one
+  bedrock-family settings show
+    Show saved rules and the usual finishing time.
+  bedrock-family settings set cheats off
+    Enable or disable cheats: on or off.
+  bedrock-family settings set keep-inventory on
+    Keep inventory after death: on or off.
+  bedrock-family settings set difficulty easy
+    peaceful, easy, normal or hard.
+  bedrock-family settings set sleep 50
+    Sleeping-player percentage: 0 to 100.
+  bedrock-family settings set sleep-one
     One player in bed is enough.
-  make gamemode MODE=survival
-    Default mode: survival, creative or adventure. French names also work.
-  make gamemode-all MODE=creative
-    Change connected players only, without changing the default.
-  make game-show
-    Show saved game choices, not live measurements.
-  make game-apply
-    Start and apply saved choices.
-  make game-defaults
-    Reset only the game choices: cheats on, keep inventory on, easy, one sleeper, survival.
+  bedrock-family settings set gamemode survival
+    Default mode: survival, creative or adventure.
+  bedrock-family settings set finish-time 20:30
+    Set the usual finishing time.
+  bedrock-family players set-mode creative
+    Change connected players only.
+  bedrock-family settings apply
+    Start and apply saved rules.
+  bedrock-family settings reset
+    Restore family game-rule defaults.
 
-PLAY
-  make up
-    Start without adding a timer.
-  make start
-    Same as make up.
-  make stop
-    Cancel the timer and stop without a backup.
-  make restart
-    Restart. Keep an existing timer.
-  make status
-    See whether the server is running.
-
-PLAYERS
-  make console CMD="say Five minutes left"
-    Send a message or command. Keep the quotes.
-  make players
+PLAYERS AND ACCESS
+  bedrock-family players list
     Show who is connected.
-  make xuids
-    Find player account numbers in retained connection messages.
-  make allowlist-preview
-    Show current players without changing the list.
-  make allowlist-sync
-    Add current players; keep enrolled absent players.
-  make allowlist-show
-    Show all enrolled players.
-  make allowlist-enable
-    Restrict admission to enrolled players. May interrupt play.
-  make allowlist-disable CONFIRM=yes
-    Open admission temporarily. Close it again promptly.
-  make allowlist-remove PLAYER="Player Name"
-    Remove an exact name or XUID; keep their builds.
-  make allowlist-edit
-    Open the list for manual editing.
-  make allowlist-reload
-    Check and import the edited list, including removals.
+  bedrock-family players xuids
+    Find player IDs in retained messages.
+  bedrock-family access preview
+    Show connected players without changing the list.
+  bedrock-family access sync
+    Enroll connected players; keep absent enrolled players.
+  bedrock-family access show
+    Show enrolled players.
+  bedrock-family access enable
+    Restrict admission to enrolled players.
+  bedrock-family access disable --confirm
+    Temporarily open admission.
+  bedrock-family access remove "Player Name"
+    Remove a name or XUID; keep their builds.
+  bedrock-family access edit
+    Edit the list manually.
+  bedrock-family access reload
+    Validate and reload the edited list.
 
 BACKUPS
-  make backup
+  bedrock-family backup create
     Back up, then restore the initial running/stopped state.
-  make backups
-    List complete archives.
-  make restore FILE="backups/name.tar.gz" CONFIRM=yes
-    Restore the world; keep current settings and player access.
-  make open-backups
+  bedrock-family backup list
+    List archives.
+  bedrock-family backup restore "backups/archive.tar.gz" --confirm
+    Restore a world; keep current settings and access.
+  bedrock-family open backups
     Open the backup folder.
 
 MAINTENANCE
-  make config
-    Check saved settings.
-  make apply
-    Apply changed settings. May interrupt play.
-  make down
-    Cancel the timer and remove containers; keep the world.
-  make open-data
-    Open the world folder. Do not delete data.
-  make edit
-    Open server settings.
-  make edit-env
-    Open the saved address and version choice.
-  make pull
-    Download the image only; do not replace the running server.
-  make update
-    Cancel the timer, back up and update using the saved version choice.
-  make update-server
-    Cancel the timer, back up and download a newer Bedrock server. Test player connections afterwards.
-  make version-pin
-    Keep the installed Bedrock version on future starts.
+  bedrock-family init [FOLDER]
+    Create or adopt a server folder without overwriting existing files.
+  bedrock-family setup [--accept-eula] [--ip ADDRESS]
+    Accept the terms and detect or choose the IPv4 address.
+  bedrock-family check
+    Validate configuration.
+  bedrock-family doctor
+    Check Docker and the environment.
+  bedrock-family update
+    Back up and update using the saved version choice.
+  bedrock-family update --server
+    Back up and download the latest Bedrock server.
+  bedrock-family version pin
+    Keep the downloaded version on future starts.
+  bedrock-family version pull
+    Download only the Docker image.
+  bedrock-family open data
+    Open world data; do not delete this folder.
+  bedrock-family open settings
+    Edit advanced server settings.
+  bedrock-family open network
+    Edit the server address and version.
 
-HELP
-  make
-    Show all commands. Use LANGUAGE=fr for French help.
-  make docker-start
-    Open Docker Desktop and wait.
-  make doctor
-    Check Docker and Python.
-  make logs
-    Follow messages. Ctrl+C exits the display, not the server.
-  make logs-once
-    Show recent messages.
-
-CHECKS
-  make test
-    Run offline tests, without a real Docker engine.
-  make lint
-    Check Python syntax and Make commands.
-  make verify
-    Run both checks.
-
-DOCUMENTS
-  make docs
-    Build optional PDFs; see docs/en/printing.md.
-
-Cheats are on by default and disable world achievements.
+Cheats are enabled by default and disable world achievements.
 Sleep at 0 percent still needs one player in bed.
-Warnings: 15 min, 5 min, 1 min, 30 s. Keep the Mac and Docker running.
+Make commands are reserved for tests and contributions.
