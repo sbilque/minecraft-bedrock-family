@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GAME_DEFAULTS = {'cheats': True, 'keep_inventory': True, 'difficulty': 'easy', 'sleep_percent': 0, 'gamemode': 'survival'}
 STEPS = [(900, '15 minutes'), (300, '5 minutes'), (60, '1 minute'), (30, '30 secondes')]
 ACTIVE = ('starting', 'scheduled', 'stopping')
-PUBLIC_ACTIONS = ('help','setup','check','config','docker-start','doctor','up','start','apply','stop','down','restart','status','logs','logs-once','console','players','xuids','backup','backups','restore','open-backups','open-data','edit','edit-env','pull','update','update-server','version-pin','allowlist-preview','allowlist-sync','allowlist-show','allowlist-enable','allowlist-disable','allowlist-remove','allowlist-edit','allowlist-reload','session','session-status','session-cancel','session-stop','session-logs','session-default','session-default-show','session-default-reset','cheats','keep-inventory','difficulty','sleep','sleep-one','gamemode','gamemode-all','game-show','game-apply','game-defaults')
+PUBLIC_ACTIONS = ('help','setup','check','config','docker-start','doctor','up','start','apply','stop','down','restart','status','logs','logs-once','console','players','xuids','backup','backups','restore','open-backups','open-data','edit','edit-env','pull','update','update-server','version-pin','allowlist-preview','allowlist-sync','allowlist-show','allowlist-enable','allowlist-disable','allowlist-remove','allowlist-edit','allowlist-reload','session','session-status','session-cancel','session-stop','session-logs','session-default','session-default-show','session-default-reset','worlds','world-default','cheats','keep-inventory','difficulty','sleep','sleep-one','gamemode','gamemode-all','game-show','game-apply','game-defaults')
 
 def say(value): print(value, flush=True)
 def atomic(path, value, json_mode=True):
@@ -79,6 +79,28 @@ def settings():
     if not isinstance(cfg,dict):raise RuntimeError('Reglages familiaux invalides.')
     game = cfg['game'] if 'game' in cfg else load(ROOT/'game-settings.json',{})
     return {'stop_at':clock(cfg.get('stop_at','19:00')),'game':validate_game(game)}
+
+def worlds():
+    current=env_read().get('LEVEL_NAME','Famille') or 'Famille'
+    folder=ROOT/'data'/'worlds'
+    entries=sorted((p.name for p in folder.iterdir() if p.is_dir()),key=str.casefold) if folder.is_dir() else []
+    say('Monde par defaut : '+current+('' if current in entries else ' (pas encore cree)'))
+    if not entries:say('Aucun monde trouve dans data/worlds.')
+    else:
+        say('Mondes disponibles :')
+        for name in entries:say((' * ' if name==current else '   ')+name)
+
+def world_default():
+    name=os.getenv('LEVEL','')
+    if not name or name!=name.strip() or '\x00' in name or name in ('.','..') or Path(name).name!=name:
+        raise RuntimeError('Indiquer le nom exact d un monde avec LEVEL=nom.')
+    with lock('maintenance'):
+        if not (ROOT/'data'/'worlds'/name).is_dir():
+            raise RuntimeError('Monde introuvable : '+name+'. Utiliser make worlds pour voir les mondes disponibles.')
+        env_read()
+        env_update({'LEVEL_NAME':name})
+    say('Monde par defaut : '+name+'. Le choix sera applique au prochain make up ou make apply.')
+
 def update_settings(stop_at=None,game=None):
     with lock('settings',True):
         cfg=settings()
@@ -119,7 +141,7 @@ def game_overlay(cfg):
 def ensure_game_overlay():atomic(ROOT/'compose.game.json',game_overlay(settings()['game']))
 def compose_env(latest=False):
     env=dict(os.environ)
-    for k in ('LAN_IP','EULA','BEDROCK_VERSION'):env.pop(k,None)
+    for k in ('LAN_IP','EULA','BEDROCK_VERSION','LEVEL_NAME'):env.pop(k,None)
     if latest:env['BEDROCK_VERSION']='LATEST'
     return env
 def dcargs():
@@ -475,6 +497,8 @@ def main():
         say((ROOT / 'docs' / language / 'commands.txt').read_text(encoding='utf-8'))
         return
     if action=='setup':setup();return
+    if action=='worlds':worlds();return
+    if action=='world-default':world_default();return
     if action in ('cheats','keep-inventory','difficulty','sleep','sleep-one','gamemode','gamemode-all','game-show','game-apply','game-defaults'):game_action(action);return
     if action.startswith('session-default'):
         if action=='session-default':cfg=update_settings(stop_at=clock(os.getenv('TIME','')))

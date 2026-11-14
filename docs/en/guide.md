@@ -28,6 +28,20 @@ Times use the Mac's clock. A time already past today is refused. Reminders arriv
 
 This is not a daily schedule: run `make session` for each game.
 
+## List or choose a world
+
+```sh
+make worlds
+```
+
+This lists the available world folders and marks the default. To choose an existing world:
+
+```sh
+make world-default LEVEL="World Name"
+```
+
+This does not interrupt a game in progress. The choice takes effect on the next `make up` or `make apply`. A world must already exist in `data/worlds`.
+
 ## Check, change or cancel the end
 
 | I want to… | I type… |
@@ -172,7 +186,7 @@ make update-server
 
 A backup is made before updating. Afterwards, check that iOS and Windows devices can join with a compatible Minecraft Bedrock version.
 
-For server settings: `make edit`, save, then `make apply`. Use the dedicated commands for the five family rules. Do not change `LEVEL_NAME` unless you want a different world.
+For other server settings: `make edit`, save, then `make apply`. To choose a world, use `make worlds` and `make world-default`.
 
 `make restart` does not replace `make apply` after a settings change. `make stop` stops without backing up; use `make session-stop` to end an evening.
 

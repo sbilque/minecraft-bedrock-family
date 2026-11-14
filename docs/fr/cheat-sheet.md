@@ -30,6 +30,15 @@ Rappels : 15 min, 5 min, 1 min et 30 s avant. Puis arrêt et sauvegarde. Une heu
 
 Changer l’habitude ne déplace pas une partie déjà programmée. Pour la déplacer : annulez, puis programmez à nouveau.
 
+## Choisir un monde
+
+| Je veux… | Je saisis… |
+|---|---|
+| Voir les mondes et le choix actuel | make worlds |
+| Choisir un monde existant | make world-default LEVEL="Nom du monde" |
+
+Le choix s’applique au prochain make up ou make apply, pas pendant une partie.
+
 ## Sauvegarder
 
 | Je veux… | Je saisis… |

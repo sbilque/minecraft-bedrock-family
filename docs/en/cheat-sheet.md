@@ -30,6 +30,15 @@ Reminders: 15 min, 5 min, 1 min and 30 s before the end. Then shutdown and backu
 
 Changing the usual time does not move an active timer. Cancel, then schedule again to move it.
 
+## Choose a world
+
+| I want to… | I type… |
+|---|---|
+| See worlds and the current choice | make worlds |
+| Choose an existing world | make world-default LEVEL="World Name" |
+
+The choice takes effect on the next make up or make apply, not during a game.
+
 ## Back up
 
 | I want to… | I type… |

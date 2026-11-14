@@ -100,10 +100,28 @@ class LocalTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):m.setup()
         self.assertFalse((self.root/'.env').exists())
     def test_compose_env_removes_interpolation_overrides(self):
-        os.environ.update(LAN_IP='',EULA='',BEDROCK_VERSION='EXISTING',OTHER='keep')
+        os.environ.update(LAN_IP='',EULA='',BEDROCK_VERSION='EXISTING',LEVEL_NAME='wrong',OTHER='keep')
         cfg=m.compose_env();self.assertNotIn('LAN_IP',cfg);self.assertNotIn('EULA',cfg)
-        self.assertNotIn('BEDROCK_VERSION',cfg);self.assertEqual(cfg['OTHER'],'keep')
+        self.assertNotIn('BEDROCK_VERSION',cfg);self.assertNotIn('LEVEL_NAME',cfg);self.assertEqual(cfg['OTHER'],'keep')
         self.assertEqual(m.compose_env(True)['BEDROCK_VERSION'],'LATEST')
+    def test_worlds_lists_existing_worlds_and_marks_default(self):
+        self.seed();m.env_update({'LEVEL_NAME':'Famille'})
+        worlds=self.root/'data'/'worlds';(worlds/'Famille').mkdir(parents=True);(worlds/'Survie 2').mkdir()
+        with mock.patch.object(m,'say') as say:m.worlds()
+        messages=[call.args[0] for call in say.call_args_list]
+        self.assertIn('Monde par defaut : Famille',messages)
+        self.assertIn(' * Famille',messages);self.assertIn('   Survie 2',messages)
+    def test_world_default_updates_env_only_for_existing_world(self):
+        self.seed();world=(self.root/'data'/'worlds'/'Survie 2');world.mkdir(parents=True)
+        os.environ['LEVEL']='Survie 2'
+        with mock.patch.object(m,'docker_reachable',side_effect=AssertionError('Docker must not run')):m.world_default()
+        self.assertEqual(m.env_read()['LEVEL_NAME'],'Survie 2')
+        self.assertIn('BEDROCK_VERSION=LATEST',(self.root/'.env').read_text())
+    def test_world_default_rejects_missing_or_unsafe_world(self):
+        self.seed()
+        for value in ('missing','../outside',''):
+            os.environ['LEVEL']=value
+            with self.subTest(value=value),self.assertRaises(RuntimeError):m.world_default()
     def test_compose_overlays_are_loaded(self):
         for name in ['compose.allowlist.json','compose.game.json']:m.atomic(self.root/name,{})
         args=m.dcargs();self.assertIn(str(self.root/'compose.allowlist.json'),args);self.assertIn(str(self.root/'compose.game.json'),args)
@@ -301,6 +319,13 @@ class FakeDockerTests(unittest.TestCase):
             result=self.make(*args);self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         cfg=json.loads((self.root/'family-settings.json').read_text())
         self.assertEqual(cfg['stop_at'],'20:30');self.assertFalse(cfg['game']['cheats']);self.assertEqual(cfg['game']['difficulty'],'normal');self.assertEqual(cfg['game']['sleep_percent'],50)
+    def test_world_commands_show_and_select_world_without_starting_server(self):
+        world=self.root/'data'/'worlds'/'Survie 2';world.mkdir(parents=True)
+        result=self.make('worlds');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('Survie 2',result.stdout);self.assertIn('Famille',result.stdout)
+        result=self.make('world-default','LEVEL=Survie 2');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('LEVEL_NAME=Survie 2',(self.root/'.env').read_text())
+        self.assertIn('prochain make up ou make apply',result.stdout)
     def test_unconfirmed_game_rule_is_failure(self):
         env=dict(self.env);env['FAKE_REPLY_ERROR']='yes';result=self.make('up',env=env)
         self.assertNotEqual(result.returncode,0);self.assertIn('SIMULATED_DOCKER_LOGS',result.stdout)

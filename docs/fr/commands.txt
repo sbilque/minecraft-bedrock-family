@@ -29,6 +29,12 @@ HORAIRE
   make session-default-reset
     Revenir à 19 h.
 
+MONDES
+  make worlds
+    Afficher les mondes disponibles et celui par défaut.
+  make world-default LEVEL="Nom du monde"
+    Choisir un monde existant ; appliquer avec make up ou make apply.
+
 REGLAGES DE JEU
   make cheats VALUE=on
     Activer la triche ; off pour désactiver.

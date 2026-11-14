@@ -28,6 +28,20 @@ L’heure est celle du Mac. Une heure déjà passée aujourd’hui est refusée.
 
 Cette programmation ne revient pas demain : relancez `make session` à chaque partie.
 
+## Afficher ou choisir un monde
+
+```sh
+make worlds
+```
+
+La commande affiche les dossiers de monde disponibles et marque le monde par défaut. Pour en choisir un existant :
+
+```sh
+make world-default LEVEL="Nom du monde"
+```
+
+Le choix ne coupe pas une partie en cours. Il sera appliqué au prochain `make up` ou `make apply`. Un monde doit déjà exister dans `data/worlds`.
+
 ## Vérifier, changer ou annuler la fin
 
 | Je veux… | Je saisis… |
@@ -172,7 +186,7 @@ make update-server
 
 Une sauvegarde est faite avant la mise à jour. Vérifiez ensuite que les appareils iOS et Windows peuvent rejoindre avec une version compatible de Minecraft Bedrock.
 
-Pour les réglages du serveur : `make edit`, enregistrez, puis `make apply`. Pour les cinq règles familiales, utilisez plutôt leurs commandes. Ne changez pas `LEVEL_NAME` sans vouloir choisir un autre monde.
+Pour les autres réglages du serveur : `make edit`, enregistrez, puis `make apply`. Pour choisir un monde, utilisez `make worlds` et `make world-default`.
 
 `make restart` ne remplace pas `make apply` après un changement de réglage. `make stop` arrête sans sauvegarder ; préférez `make session-stop` pour finir une soirée.
 

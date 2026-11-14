@@ -29,6 +29,12 @@ FINISHING TIME
   make session-default-reset
     Return to 19:00.
 
+WORLDS
+  make worlds
+    Show available worlds and the default.
+  make world-default LEVEL="World Name"
+    Choose an existing world; apply with make up or make apply.
+
 GAME RULES
   make cheats VALUE=on
     Enable cheats; VALUE=off disables them. Cheats disable achievements.
