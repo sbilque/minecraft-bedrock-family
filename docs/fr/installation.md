@@ -31,6 +31,8 @@ bedrock-family init ~/MinecraftFamille
 cd ~/MinecraftFamille
 ```
 
+Le CLI suit les préférences de langue du terminal. Pour choisir une langue ponctuellement, placez l’option avant la commande : `bedrock-family --language fr --help`. Pour la définir pour toute la session du terminal : `export BEDROCK_FAMILY_LANGUAGE=fr` (ou `en`).
+
 Pour adopter un dossier existant, utilisez son chemin avec `-C` et ne le déplacez pas : `bedrock-family -C ~/minecraft-bedrock-family init`. L’initialisation conserve les fichiers présents et ne remplace pas le monde.
 
 ## 3. Détecter l’adresse du Mac et démarrer

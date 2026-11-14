@@ -9,31 +9,58 @@ import sys
 import tarfile
 
 from . import __version__, manage
+from .i18n import available_languages, default_language, language_from_args, set_language, tr
 
 
-def build_parser():
+ARGPARSE_MESSAGE_KEYS = {
+    "usage: ": "usage",
+    "positional arguments": "positional_arguments",
+    "optional arguments": "optional_arguments",
+    "options": "options",
+    "show this help message and exit": "show_this_help_message_and_exit",
+    "unrecognized arguments: %s": "unrecognized_arguments",
+    "invalid choice: %(value)r (choose from %(choices)s)": "invalid_choice",
+    "argument %s: %s": "argument_error",
+}
+
+
+def translate_argparse(message):
+    return tr(ARGPARSE_MESSAGE_KEYS.get(message, message))
+
+
+def build_parser(language=None):
+    language = set_language(language or default_language())
+    argparse._ = translate_argparse
     parser = argparse.ArgumentParser(
         prog="bedrock-family",
-        description="Gérer un serveur Minecraft Bedrock familial.",
+        description=tr('manage_a_family_minecraft_bedrock_server'),
     )
     parser.add_argument(
         "-C", "--project-dir", type=Path, default=Path.cwd(),
-        help="Dossier de ce serveur (par défaut : dossier courant).",
+        help=tr('server_folder_defaults_to_the_current_directory'),
+    )
+    parser.add_argument(
+        "--language",
+        choices=available_languages(),
+        default=language,
+        metavar="LANG",
+        help=tr('select_the_interface_language'),
     )
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command")
 
-    init = commands.add_parser("init", help="Initialiser ou adopter un dossier serveur.")
+    commands.add_parser("help", help=tr('show_cli_help'))
+    init = commands.add_parser("init", help=tr('initialize_or_adopt_a_server_folder'))
     init.add_argument("directory", nargs="?", type=Path)
 
-    setup = commands.add_parser("setup", help="Configurer l’EULA et l’adresse du Mac.")
-    setup.add_argument("--accept-eula", action="store_true", help="Confirmer l’acceptation des conditions Minecraft.")
-    setup.add_argument("--ip", help="Utiliser cette IPv4 au lieu de la détecter.")
+    setup = commands.add_parser("setup", help=tr('configure_the_eula_and_the_mac_s_address'))
+    setup.add_argument("--accept-eula", action="store_true", help=tr('confirm_acceptance_of_the_minecraft_terms'))
+    setup.add_argument("--ip", help=tr('use_this_ipv4_address_instead_of_detecting_one'))
 
-    commands.add_parser("doctor", help="Vérifier Docker et l’environnement.")
-    commands.add_parser("check", help="Valider la configuration du serveur.")
+    commands.add_parser("doctor", help=tr('check_docker_and_the_environment'))
+    commands.add_parser("check", help=tr('validate_the_server_configuration'))
 
-    server = commands.add_parser("server", help="Démarrer, arrêter ou inspecter le serveur.")
+    server = commands.add_parser("server", help=tr('start_stop_or_inspect_the_server'))
     server_commands = server.add_subparsers(dest="server_command", required=True)
     for name in ("start", "stop", "restart", "down", "status"):
         server_commands.add_parser(name)
@@ -43,19 +70,19 @@ def build_parser():
     console = server_commands.add_parser("console")
     console.add_argument("command", nargs=argparse.REMAINDER)
 
-    world = commands.add_parser("world", help="Afficher, choisir ou créer un monde.")
+    world = commands.add_parser("world", help=tr('list_choose_or_create_a_world'))
     world_commands = world.add_subparsers(dest="world_command", required=True)
     world_commands.add_parser("list")
     use_world = world_commands.add_parser("use")
     use_world.add_argument("name")
     create_world = world_commands.add_parser("create")
     create_world.add_argument("name")
-    create_world.add_argument("--yes", action="store_true", help="Confirmer le démarrage ou redémarrage du serveur.")
+    create_world.add_argument("--yes", action="store_true", help=tr('confirm_starting_or_restarting_the_server'))
 
-    session = commands.add_parser("session", help="Programmer la fin d’une partie.")
+    session = commands.add_parser("session", help=tr('schedule_the_end_of_a_game'))
     session_commands = session.add_subparsers(dest="session_command", required=True)
     start_session = session_commands.add_parser("start")
-    start_session.add_argument("--until", metavar="HH:MM", help="Heure de fin pour cette partie seulement.")
+    start_session.add_argument("--until", metavar="HH:MM", help=tr('end_time_for_this_game_only'))
     for name in ("status", "cancel", "stop", "logs"):
         session_commands.add_parser(name)
     defaults = session_commands.add_parser("default")
@@ -65,14 +92,14 @@ def build_parser():
     set_default.add_argument("time", metavar="HH:MM")
     defaults_subcommands.add_parser("reset")
 
-    players = commands.add_parser("players", help="Voir les joueurs et leurs identifiants.")
+    players = commands.add_parser("players", help=tr('list_players_and_their_identifiers'))
     players_commands = players.add_subparsers(dest="players_command", required=True)
     players_commands.add_parser("list")
     players_commands.add_parser("xuids")
     player_mode = players_commands.add_parser("set-mode")
     player_mode.add_argument("mode", choices=("survival", "creative", "adventure", "survie", "creatif", "aventure"))
 
-    access = commands.add_parser("access", help="Gérer les joueurs autorisés.")
+    access = commands.add_parser("access", help=tr('manage_allowed_players'))
     access_commands = access.add_subparsers(dest="access_command", required=True)
     for name in ("preview", "sync", "show", "enable", "reload"):
         access_commands.add_parser(name)
@@ -82,7 +109,7 @@ def build_parser():
     remove.add_argument("name")
     edit_access = access_commands.add_parser("edit")
 
-    settings = commands.add_parser("settings", help="Consulter ou modifier les règles du jeu.")
+    settings = commands.add_parser("settings", help=tr('view_or_change_game_rules'))
     settings_commands = settings.add_subparsers(dest="settings_command", required=True)
     settings_commands.add_parser("show")
     set_setting = settings_commands.add_parser("set")
@@ -91,7 +118,7 @@ def build_parser():
     settings_commands.add_parser("reset")
     settings_commands.add_parser("apply")
 
-    backup = commands.add_parser("backup", help="Créer, lister ou restaurer une sauvegarde.")
+    backup = commands.add_parser("backup", help=tr('create_list_or_restore_a_backup'))
     backup_commands = backup.add_subparsers(dest="backup_command", required=True)
     backup_commands.add_parser("create")
     backup_commands.add_parser("list")
@@ -99,14 +126,14 @@ def build_parser():
     restore.add_argument("archive", type=Path)
     restore.add_argument("--confirm", action="store_true")
 
-    update = commands.add_parser("update", help="Mettre à jour le serveur Bedrock.")
-    update.add_argument("--server", action="store_true", help="Télécharger la version Bedrock la plus récente.")
-    version = commands.add_parser("version", help="Gérer la version Bedrock installée.")
+    update = commands.add_parser("update", help=tr('update_the_bedrock_server'))
+    update.add_argument("--server", action="store_true", help=tr('download_the_latest_bedrock_server_version'))
+    version = commands.add_parser("version", help=tr('manage_the_installed_bedrock_version'))
     version_commands = version.add_subparsers(dest="version_command", required=True)
     version_commands.add_parser("pin")
     version_commands.add_parser("pull")
 
-    open_command = commands.add_parser("open", help="Ouvrir un dossier ou fichier de configuration.")
+    open_command = commands.add_parser("open", help=tr('open_a_folder_or_configuration_file'))
     open_command.add_argument("target", choices=("data", "backups", "settings", "network", "access"))
 
     return parser
@@ -118,15 +145,15 @@ def initialize(directory):
     compose = root / "compose.yaml"
     if compose.exists():
         if not compose.is_file():
-            raise RuntimeError("compose.yaml existe mais n’est pas un fichier.")
-        print("Dossier serveur existant conservé ; aucun fichier n’a été remplacé.")
+            raise RuntimeError(tr('compose_yaml_exists_but_is_not_a_file'))
+            print(tr('existing_server_folder_preserved_no_files_were_replaced'))
     else:
         template = files("bedrock_family").joinpath("templates", "compose.yaml")
         compose.write_text(template.read_text(encoding="utf-8"), encoding="utf-8")
-        print("Modèle du serveur installé dans " + str(root))
+        print(tr('server_template_installed_in_root', root=root))
     for name in ("data", "backups", "logs"):
         (root / name).mkdir(exist_ok=True)
-    print("Dossier prêt. Exécuter bedrock-family -C " + str(root) + " setup.")
+    print(tr('folder_is_ready_run_bedrock_family_c_root_setup', root=root))
     return root
 
 
@@ -134,9 +161,9 @@ def confirm(prompt, assume_yes=False):
     if assume_yes:
         return
     if not sys.stdin.isatty():
-        raise RuntimeError("Confirmation interactive requise ; relancer avec --yes si cette opération est voulue.")
-    if input(prompt + " [o/N] ").strip().casefold() not in ("o", "oui", "y", "yes"):
-        raise RuntimeError("Opération annulée.")
+        raise RuntimeError(tr('interactive_confirmation_required_rerun_with_yes_if_you_intend_to_proceed'))
+    if input(tr(prompt) + " [o/N] ").strip().casefold() not in ("o", "oui", "y", "yes"):
+        raise RuntimeError(tr('operation_cancelled'))
 
 
 @contextlib.contextmanager
@@ -179,23 +206,26 @@ def invoke(root, action, **values):
 
 def create_world(root, name, assume_yes):
     if not name or name != name.strip() or "\x00" in name or name in (".", "..") or Path(name).name != name:
-        raise RuntimeError("Nom de monde invalide.")
+        raise RuntimeError(tr('invalid_world_name'))
     destination = root / "data" / "worlds" / name
     if destination.exists():
-        raise RuntimeError("Ce monde existe déjà ; utiliser bedrock-family world use.")
+        raise RuntimeError(tr('this_world_already_exists_use_bedrock_family_world_use'))
     with project_context(root):
         manage.config_check()
         manage.docker_start()
         if manage.running():
-            confirm("Créer ce monde va redémarrer le serveur actuellement actif. Continuer ?", assume_yes)
+            confirm('creating_this_world_will_restart_the_running_server_continue', assume_yes)
         with manage.lock("maintenance"):
             if destination.exists():
-                raise RuntimeError("Ce monde existe déjà.")
+                raise RuntimeError(tr('this_world_already_exists'))
             manage.env_update({"LEVEL_NAME": name})
             manage.up()
 
 
 def execute(args, parser):
+    if args.command == "help":
+        parser.print_help()
+        return
     if args.command == "init":
         return initialize(args.directory or args.project_dir)
 
@@ -204,13 +234,13 @@ def execute(args, parser):
         invoke(root, "doctor")
         return root
     if not (root / "compose.yaml").is_file():
-        raise RuntimeError("Aucun serveur dans ce dossier. Initialiser avec bedrock-family init.")
+        raise RuntimeError(tr('no_server_found_in_this_folder_initialize_it_with_bedrock_family_init'))
 
     if args.command == "setup":
         if not args.accept_eula:
-            print("Lire les conditions Minecraft : https://www.minecraft.net/eula")
+            print(tr('read_the_minecraft_terms_https_www_minecraft_net_eula'))
             if not sys.stdin.isatty():
-                raise RuntimeError("Accepter explicitement les conditions avec --accept-eula.")
+                raise RuntimeError(tr('explicitly_accept_the_terms_with_accept_eula'))
             confirm("Acceptez-vous les conditions Minecraft ?", False)
         invoke(root, "setup", EULA="TRUE", LAN_IP=args.ip or "")
     elif args.command == "check":
@@ -251,7 +281,7 @@ def execute(args, parser):
             invoke(root, "gamemode-all", MODE=args.mode)
     elif args.command == "access":
         if args.access_command == "disable" and not args.confirm:
-            raise RuntimeError("Cette action ouvre l’accès au serveur ; confirmer avec --confirm.")
+            raise RuntimeError(tr('this_opens_server_access_confirm_with_confirm'))
         if args.access_command == "remove":
             invoke(root, "allowlist-remove", PLAYER=args.name)
         elif args.access_command == "disable":
@@ -263,7 +293,7 @@ def execute(args, parser):
     elif args.command == "settings":
         if args.settings_command == "show":
             invoke(root, "game-show")
-            print("Heure habituelle de fin : " + manage.load(root / "family-settings.json", {}).get("stop_at", "19:00"))
+            print(tr('usual_end_time_time', time=manage.load(root / "family-settings.json", {}).get("stop_at", "19:00")))
         elif args.settings_command == "reset":
             invoke(root, "game-defaults")
         elif args.settings_command == "apply":
@@ -279,11 +309,11 @@ def execute(args, parser):
                 "finish-time": "session-default",
             }
             if args.name == "sleep" and args.value is None:
-                parser.error("settings set sleep requiert un pourcentage de 0 à 100.")
+                parser.error(tr('settings_set_sleep_requires_a_percentage_from_0_to_100'))
             if args.name == "sleep-one" and args.value is not None:
-                parser.error("settings set sleep-one ne prend pas de valeur.")
+                parser.error(tr('settings_set_sleep_one_does_not_take_a_value'))
             if args.name not in ("sleep", "sleep-one") and args.value is None:
-                parser.error("settings set " + args.name + " requiert une valeur.")
+                parser.error(tr('settings_set_name_requires_a_value', name=args.name))
             if args.name != "sleep-one":
                 key = "TIME" if args.name == "finish-time" else "PERCENT" if args.name == "sleep" else "VALUE" if args.name in ("cheats", "keep-inventory") else "LEVEL" if args.name == "difficulty" else "MODE"
                 invoke(root, action_names[args.name], **{key: args.value})
@@ -296,7 +326,7 @@ def execute(args, parser):
             invoke(root, "backups")
         else:
             if not args.confirm:
-                raise RuntimeError("La restauration remplace les constructions actuelles ; ajouter --confirm.")
+                raise RuntimeError(tr('restoring_replaces_current_builds_add_confirm'))
             archive = args.archive if args.archive.is_absolute() else root / args.archive
             invoke(root, "restore", FILE=str(archive), CONFIRM="yes")
     elif args.command == "update":
@@ -312,7 +342,11 @@ def execute(args, parser):
 
 
 def main(argv=None):
-    parser = build_parser()
+    argv = sys.argv[1:] if argv is None else argv
+    language = language_from_args(argv)
+    set_language(language)
+    os.environ["BEDROCK_FAMILY_LANGUAGE"] = language
+    parser = build_parser(language)
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
@@ -321,8 +355,8 @@ def main(argv=None):
         execute(args, parser)
         return 0
     except KeyboardInterrupt:
-        print("Interrompu. Le serveur n’est pas automatiquement arrêté.", file=sys.stderr)
+        print(tr('interrupted_server_not_stopped_automatically'), file=sys.stderr)
         return 130
     except (RuntimeError, OSError, ValueError, KeyError, tarfile.TarError, subprocess.TimeoutExpired) as exc:
-        print("ERREUR : " + str(exc), file=sys.stderr)
+        print(tr('error_message', message=str(exc)), file=sys.stderr)
         return 1

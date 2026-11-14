@@ -28,4 +28,4 @@ bedrock-family = "bedrock_family.cli:main"
 include = ["bedrock_family*"]
 
 [tool.setuptools.package-data]
-bedrock_family = ["templates/*.yaml"]
+bedrock_family = ["templates/*.yaml", "locales/*.json"]

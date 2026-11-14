@@ -16,6 +16,10 @@ Runtime code uses the Python standard library. PDF tools are optional. Do not co
 
 The `minecraft-bedrock-family` distribution is built from `pyproject.toml` and exposes the `bedrock-family` command. Run `make verify`, build and inspect the wheel and source archive, then create a version tag such as `v0.1.0`. Configure PyPI Trusted Publishing for this repository and the `pypi` environment before using the release workflow. Never store a PyPI token in the repository.
 
+### Adding a CLI language
+
+The CLI discovers JSON catalogs in `bedrock_family/locales/`. To add a language, copy `en.json` to `<language>.json`, keep the English `snake_case` keys unchanged, and translate their values. No Python changes are needed. The language is then detected from the user's locale, or can be selected with `--language` or `BEDROCK_FAMILY_LANGUAGE`.
+
 ## Français
 
 Garder le projet accessible aux parents qui ne connaissent ni Docker ni Git. Le serveur fonctionne sur macOS avec Apple Silicon. Les joueurs utilisent Minecraft Bedrock sur iOS ou Windows 10/11, sur le même réseau local.
@@ -31,3 +35,7 @@ Le programme de gestion utilise la bibliothèque standard Python. Les outils PDF
 ### Publier le CLI
 
 La distribution `minecraft-bedrock-family` est construite depuis `pyproject.toml` et fournit la commande `bedrock-family`. Exécuter `make verify`, construire et inspecter la roue et l’archive source, puis créer une étiquette de version telle que `v0.1.0`. Configurer la publication de confiance PyPI pour ce dépôt et l’environnement `pypi` avant d’utiliser le workflow de publication. Ne jamais enregistrer de jeton PyPI dans le dépôt.
+
+### Ajouter une langue au CLI
+
+Le CLI découvre les catalogues JSON dans `bedrock_family/locales/`. Pour ajouter une langue, copiez `en.json` vers `<langue>.json`, conservez les clés anglaises en `snake_case` et traduisez leurs valeurs. Aucune modification Python n’est nécessaire. La langue est détectée depuis les paramètres régionaux de l’utilisateur, ou peut être choisie avec `--language` ou `BEDROCK_FAMILY_LANGUAGE`.

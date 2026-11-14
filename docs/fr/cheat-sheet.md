@@ -6,6 +6,8 @@ Sur le Mac, ouvrez Terminal :
 cd ~/MinecraftFamille
 ```
 
+L’aide suit la langue du terminal. Pour la choisir : `bedrock-family --language fr --help`.
+
 Les joueurs utilisent Minecraft Bedrock sur iOS ou Windows 10/11, sur le même réseau local. Le Mac et Docker restent allumés.
 
 ## Commencer et finir une partie

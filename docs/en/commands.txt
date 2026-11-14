@@ -6,7 +6,9 @@ Install the CLI:
   cd ~/MinecraftFamily
   bedrock-family setup --accept-eula
 
-Full help: bedrock-family --help.
+Full help: bedrock-family --help. The CLI follows the terminal's language preferences.
+Choose a language for one command: bedrock-family --language fr --help.
+Set it for the terminal session: export BEDROCK_FAMILY_LANGUAGE=fr (or en).
 Run the commands below from the server folder.
 
 SERVER AND GAMES

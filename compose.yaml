@@ -7,7 +7,7 @@ services:
       EULA: "${EULA:-FALSE}"
       VERSION: "${BEDROCK_VERSION:-LATEST}"
       TZ: "${SERVER_TIMEZONE:-Etc/UTC}"
-      SERVER_NAME: "Minecraft Family"
+      SERVER_NAME: "Minecraft Famille"
       LEVEL_NAME: "${LEVEL_NAME:-Famille}"
       GAMEMODE: "survival"
       DIFFICULTY: "easy"

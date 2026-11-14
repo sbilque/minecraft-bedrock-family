@@ -6,7 +6,9 @@ Installation du CLI :
   cd ~/MinecraftFamille
   bedrock-family setup --accept-eula
 
-L’aide complète est disponible avec bedrock-family --help.
+L’aide complète est disponible avec bedrock-family --help. La langue suit les préférences du terminal.
+Pour la choisir ponctuellement : bedrock-family --language en --help.
+Pour la conserver dans le terminal : export BEDROCK_FAMILY_LANGUAGE=en (ou fr).
 Toutes les commandes suivantes s’exécutent depuis le dossier serveur.
 
 SERVEUR ET PARTIES

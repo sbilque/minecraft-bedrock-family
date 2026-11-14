@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serveur familial Minecraft Bedrock. Python 3.9+, macOS, bibliotheque standard."""
+"""Minecraft Bedrock family server manager. Python 3.9+, macOS, standard library."""
 import contextlib
 import datetime as dt
 import fcntl
@@ -16,13 +16,15 @@ import time
 import unicodedata
 import uuid
 
+from .i18n import current_language, tr
+
 ROOT = Path(os.getenv('BEDROCK_FAMILY_HOME',Path(__file__).resolve().parents[1])).resolve()
 GAME_DEFAULTS = {'cheats': True, 'keep_inventory': True, 'difficulty': 'easy', 'sleep_percent': 0, 'gamemode': 'survival'}
 STEPS = [(900, '15 minutes'), (300, '5 minutes'), (60, '1 minute'), (30, '30 secondes')]
 ACTIVE = ('starting', 'scheduled', 'stopping')
 PUBLIC_ACTIONS = ('help','setup','check','config','docker-start','doctor','up','start','apply','stop','down','restart','status','logs','logs-once','console','players','xuids','backup','backups','restore','open-backups','open-data','edit','edit-env','pull','update','update-server','version-pin','allowlist-preview','allowlist-sync','allowlist-show','allowlist-enable','allowlist-disable','allowlist-remove','allowlist-edit','allowlist-reload','session','session-status','session-cancel','session-stop','session-logs','session-default','session-default-show','session-default-reset','worlds','world-default','cheats','keep-inventory','difficulty','sleep','sleep-one','gamemode','gamemode-all','game-show','game-apply','game-defaults')
 
-def say(value): print(value, flush=True)
+def say(text, **values): print(tr(text, **values), flush=True)
 def atomic(path, value, json_mode=True):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     temp=path.with_name(path.name+'.tmp-'+str(os.getpid()))
@@ -70,7 +72,7 @@ def validate_game(value):
     if not isinstance(value,dict):raise RuntimeError('Les reglages de jeu doivent former un objet JSON.')
     cfg=dict(GAME_DEFAULTS);cfg.update(value)
     for k in ('cheats','keep_inventory'):
-        if not isinstance(cfg[k],bool):raise RuntimeError(k+' doit etre true ou false.')
+        if not isinstance(cfg[k],bool):raise RuntimeError(tr('key_must_be_true_or_false', key=k))
     cfg['difficulty']=difficulty(str(cfg['difficulty']));cfg['gamemode']=gamemode(str(cfg['gamemode']))
     cfg['sleep_percent']=percentage(str(cfg['sleep_percent']))
     return cfg
@@ -84,10 +86,10 @@ def worlds():
     current=(env_read().get('LEVEL_NAME','Famille') if (ROOT/'.env').exists() else 'Famille') or 'Famille'
     folder=ROOT/'data'/'worlds'
     entries=sorted((p.name for p in folder.iterdir() if p.is_dir()),key=str.casefold) if folder.is_dir() else []
-    say('Monde par defaut : '+current+('' if current in entries else ' (pas encore cree)'))
-    if not entries:say('Aucun monde trouve dans data/worlds.')
+    say('default_world_name' if current in entries else 'default_world_name_not_created_yet', name=current)
+    if not entries:say('no_worlds_found_in_data_worlds')
     else:
-        say('Mondes disponibles :')
+        say('available_worlds')
         for name in entries:say((' * ' if name==current else '   ')+name)
 
 def world_default():
@@ -96,10 +98,11 @@ def world_default():
         raise RuntimeError('Indiquer le nom exact d un monde avec LEVEL=nom.')
     with lock('maintenance'):
         if not (ROOT/'data'/'worlds'/name).is_dir():
-            raise RuntimeError('Monde introuvable : '+name+'. Utiliser bedrock-family world list.')
+            raise RuntimeError(tr('world_not_found_name_use_bedrock_family_world_list', name=name))
         env_read()
         env_update({'LEVEL_NAME':name})
-    say('Monde par defaut : '+name+'. Le choix sera applique au prochain bedrock-family server start.')
+    say('default_world_name', name=name)
+    say('the_selection_will_apply_the_next_time_bedrock_family_server_start_runs')
 
 def update_settings(stop_at=None,game=None):
     with lock('settings',True):
@@ -168,11 +171,11 @@ def select_lan_ip(configured):
     if not candidates:raise RuntimeError('Aucune adresse IPv4 locale utilisable detectee. Verifier la connexion du Mac ou relancer avec LAN_IP=adresse.')
     if len(candidates)==1:
         candidate=candidates[0]
-        say('Adresse IPv4 detectee : '+candidate['ip']+' ('+candidate['type']+', '+candidate['interface']+').')
+        say('detected_ipv4_address_ip_type_interface', **candidate)
         return candidate['ip']
-    say('Plusieurs adresses IPv4 ont ete detectees :')
+    say('several_ipv4_addresses_were_detected')
     for index,candidate in enumerate(candidates,1):
-        say('  '+str(index)+') '+candidate['type']+' ('+candidate['interface']+') : '+candidate['ip'])
+        say('index_type_interface_ip', index=index, **candidate)
     if not sys.stdin.isatty():
         raise RuntimeError('Choisir une adresse avec bedrock-family setup --ip adresse.')
     try:choice=input('Numero de la connexion utilisee par les joueurs : ').strip()
@@ -220,12 +223,12 @@ def docker_start():
             time.sleep(2)
     raw(['docker','compose','version'])
 def diagnostic():
-    say('\n--- Derniers messages Docker (80 lignes maximum) ---')
+    say('leading_newline_recent_docker_messages_up_to_80_lines')
     try:
         p=raw(dcargs()+['logs','--no-color','--tail=80','bedrock'],False,timeout=20,env=compose_env())
-        say((p.stdout+p.stderr).strip() or 'Aucun message disponible.')
-        if p.returncode:say('Verifier Docker Desktop et lancer bedrock-family doctor.')
-    except Exception as exc:say('Messages indisponibles : '+str(exc))
+        say((p.stdout+p.stderr).strip() or 'no_messages_available')
+        if p.returncode:say('check_docker_desktop_and_run_bedrock_family_doctor')
+    except Exception as exc:say('messages_unavailable_error', error=exc)
 def running():return dc(['ps','--status','running','-q','bedrock']).strip()
 def stamp():return dt.datetime.now(dt.timezone.utc).isoformat(timespec='microseconds').replace('+00:00','Z')
 def logs(cid,since=None):
@@ -259,7 +262,7 @@ def send(command,cid=None,reload=False):
     if text.strip():say(text.rstrip())
     if re.search(r'syntax error|unknown command|command not found|failed to|\bERROR\b|permission denied',text,re.I):raise RuntimeError('Le jeu a signale une erreur ; les changements deja enregistres ne sont pas annules.')
     if reload and not re.search(r'(allowlist|whitelist).*reload|reload.*(allowlist|whitelist)',text,re.I):raise RuntimeError('Liste enregistree, mais rechargement non confirme. Lire les messages ou lancer bedrock-family server restart.')
-    if not text.strip():say('Commande transmise sans reponse observee. Verifier bedrock-family server logs --once.')
+    if not text.strip():say('command_sent_without_a_confirmed_response_check_bedrock_family_server_logs_once')
     return text
 
 def apply_game_rules():
@@ -268,8 +271,8 @@ def apply_game_rules():
             ('gamerule keepinventory '+str(cfg['keep_inventory']).lower(),r'\bkeepinventory\b.*\b'+str(cfg['keep_inventory']).lower()+r'\b'),
             ('gamerule playerssleepingpercentage '+str(cfg['sleep_percent']),r'\bplayerssleepingpercentage\b.*\b'+str(cfg['sleep_percent'])+r'\b')]
     for command,pattern in checks:
-        if not re.search(pattern,send(command),re.I):raise RuntimeError('Regle non confirmee : '+command+'. Lire bedrock-family server logs --once.')
-    say('Difficulte, inventaire et sommeil confirmes par le serveur.')
+        if not re.search(pattern,send(command),re.I):raise RuntimeError(tr('rule_not_confirmed_command_check_bedrock_family_server_logs_once', command=command))
+    say('difficulty_inventory_and_sleep_settings_were_confirmed_by_the_server')
 def wait_ready():
     cid=running()
     if not cid:raise RuntimeError('Le conteneur ne fonctionne pas.')
@@ -283,8 +286,8 @@ def wait_ready():
 def up(latest=False):
     cfg=env_read()
     if cfg.get('BEDROCK_VERSION','LATEST')=='EXISTING' and not (ROOT/'data'/'bedrock_server').is_file():
-        say('Premier telechargement : aucun serveur existant. Utilisation de LATEST.');env_update({'BEDROCK_VERSION':'LATEST'})
-    ensure_game_overlay();dc(['up','-d','bedrock'],True,latest=latest);wait_ready();say('Serveur pret.')
+        say('first_download_no_existing_server_version_using_latest');env_update({'BEDROCK_VERSION':'LATEST'})
+    ensure_game_overlay();dc(['up','-d','bedrock'],True,latest=latest);wait_ready();say('server_is_ready')
 def stop():
     dc(['stop','bedrock'],True)
     if running():raise RuntimeError('Serveur encore actif : sauvegarde a froid refusee.')
@@ -301,7 +304,7 @@ def connected():
     ids={m.group(1).strip().casefold():m.group(2) for m in re.finditer(r'^Player connected:\s*(.*?),\s*xuid:\s*(\d+)',text,re.I|re.M)}
     result=[]
     for name in names:
-        if name.casefold() not in ids:raise RuntimeError('XUID absent pour '+name+'. Quitter puis rejoindre le monde.')
+        if name.casefold() not in ids:raise RuntimeError(tr('missing_xuid_for_name_leave_and_rejoin_the_world', name=name))
         result.append({'name':name,'xuid':ids[name.casefold()],'ignoresPlayerLimit':False})
     return result
 
@@ -310,8 +313,8 @@ def validate_entries(entries):
     result=[]
     for e in entries:
         if not isinstance(e,dict) or not isinstance(e.get('name'),str) or not e['name'].strip():raise RuntimeError('Chaque joueur doit avoir un nom.')
-        if any(x in e['name'] for x in ':,\n\r'):raise RuntimeError('Nom non pris en charge : '+e['name'])
-        if not isinstance(e.get('xuid'),str) or not e['xuid'].isdigit():raise RuntimeError('XUID attendu entre guillemets : '+e['name'])
+        if any(x in e['name'] for x in ':,\n\r'):raise RuntimeError(tr('unsupported_name_name', name=e['name']))
+        if not isinstance(e.get('xuid'),str) or not e['xuid'].isdigit():raise RuntimeError(tr('expected_the_xuid_in_quotes_name', name=e['name']))
         if 'ignoresPlayerLimit' in e and not isinstance(e['ignoresPlayerLimit'],bool):raise RuntimeError('ignoresPlayerLimit doit valoir true ou false.')
         result.append(dict(e))
     return result
@@ -336,14 +339,14 @@ def access(action):
             configured.append({'name':name,'xuid':xuid})
     entries=merge_entries(configured+validate_entries(load(path,[])))
     if action=='show':
-        for e in entries:say(e['name']+' : '+e['xuid'])
-        if not entries:say('Aucun joueur inscrit.')
+        for e in entries:say('name_xuid', **e)
+        if not entries:say('no_players_enrolled')
         return
     if action in ('preview','sync'):
-        current=connected();say('Joueurs presents :')
-        for e in current:say(e['name']+' : '+e['xuid'])
-        if not current:say('Aucun joueur. Aucun changement.');return
-        if action=='preview':say('Aucun changement. Pour ajouter : bedrock-family access sync');return
+        current=connected();say('players_currently_online')
+        for e in current:say('name_xuid', **e)
+        if not current:say('no_players_online_no_changes_made');return
+        if action=='preview':say('no_changes_made_to_add_players_run_bedrock_family_access_sync');return
         entries=merge_entries(entries+current)
     if action=='remove':
         name=os.getenv('PLAYER','').strip()
@@ -358,11 +361,11 @@ def access(action):
         if f.exists():shutil.copy2(str(f),str(b/f.name))
     env['ALLOW_LIST_USERS']='\n'.join(e['name']+':'+e['xuid'] for e in entries)
     if action in ('enable','disable'):env['ALLOW_LIST']='true' if action=='enable' else 'false'
-    atomic(other,overlay);atomic(path,entries);say('Liste enregistree ; copie precedente : '+str(b))
+    atomic(other,overlay);atomic(path,entries);say('list_saved_previous_copy_backup', backup=b)
     if action in ('enable','disable'):up()
     elif running():send('allowlist reload',reload=True)
-    else:say('Liste prete pour le prochain demarrage.')
-    if action=='remove':say('Constructions conservees. Si le joueur est encore present : bedrock-family server restart. Ne pas le reinscrire avec sync.')
+    else:say('list_is_ready_for_the_next_startup')
+    if action=='remove':say('builds_are_preserved_if_the_player_is_still_online_run_bedrock_family_server_restart_do_not_re_enroll_them_with_sync')
 
 def archive_filter(info):
     if info.issym() or info.islnk():raise RuntimeError('Lien dans les donnees : verifier avant de sauvegarder.')
@@ -384,7 +387,7 @@ def backup(restart=True,already_stopped=False):
                 if member.isfile():
                     with tar.extractfile(member) as stream:
                         while stream.read(1024*1024):pass
-        os.replace(str(part),str(dest));say('Sauvegarde verifiee : '+str(dest))
+        os.replace(str(part),str(dest));say('backup_verified_path', path=dest)
     finally:
         if active and restart:dc(['start','bedrock'],True)
 
@@ -412,7 +415,7 @@ def restore():
                 target.parent.mkdir(parents=True,exist_ok=True)
                 with tar.extractfile(member) as stream,target.open('wb') as dest:shutil.copyfileobj(stream,dest,1024*1024)
         atomic(ROOT/'data'/'allowlist.json',old_list)
-    up();say('Monde restaure. Reglages et autorisations actuels conserves.')
+    up();say('world_restored_current_settings_and_permissions_were_preserved')
 
 def deadline(value,now=None):
     clock(value);now=now or dt.datetime.now().astimezone();h,m=map(int,value.split(':'))
@@ -431,10 +434,10 @@ def cancel_session(quiet=False):
         s=state()
         if s.get('status')=='stopping':raise RuntimeError('Fermeture en cours : attendre la fin.')
         if s.get('status') not in ACTIVE:
-            if not quiet:say('Aucun horaire actif.')
+            if not quiet:say('no_active_schedule')
             return
         s['status']='cancelled';atomic(state_path(),s)
-    if not quiet:say('Horaire annule sans couper le serveur.')
+    if not quiet:say('schedule_cancelled_the_server_remains_running')
 
 def start_session():
     target=deadline(os.getenv('STOP_AT','') or settings()['stop_at'])
@@ -447,12 +450,12 @@ def start_session():
         up()
         if target.timestamp()<=time.time():stop();backup(False,True);s['status']='stopped';atomic(state_path(),s);return
         with lock('session',True):
-            if state().get('status')=='cancelled':say('Horaire annule pendant le demarrage.');return
+            if state().get('status')=='cancelled':say('schedule_cancelled_during_startup');return
             folder=ROOT/'logs';folder.mkdir(exist_ok=True)
             with (folder/'session.log').open('a',encoding='utf-8') as stream:
                 p=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),'_session-worker',token],stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True)
             s.update(status='scheduled',pid=p.pid);atomic(state_path(),s)
-        say('Serveur pret. Fin aujourd hui a '+target.strftime('%H:%M')+'. Garder Mac et Docker allumes.')
+        say('server_ready_today_s_end_time_is_time_keep_the_mac_and_docker_running', time=target.strftime('%H:%M'))
     except Exception as exc:
         with lock('session',True):
             s=state()
@@ -461,7 +464,7 @@ def start_session():
 
 def notice(text):
     try:send('say '+text)
-    except Exception as exc:say('Message non confirme : '+str(exc))
+    except Exception as exc:    say('message_not_confirmed_error', error=exc)
 
 def session_worker(token):
     with lock('session',True):
@@ -471,11 +474,11 @@ def session_worker(token):
     pending={n:label for n,label in STEPS if n<=remaining};awake=None
     try:
         if Path('/usr/bin/caffeinate').exists():awake=subprocess.Popen(['/usr/bin/caffeinate','-i','-w',str(os.getpid())],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        say('Session : fermeture a '+target.isoformat());initial=True
+        say('session_shutdown_at_time', time=target.isoformat());initial=True
         while True:
             with lock('session',True):
                 s=state()
-                if s.get('token')!=token or s.get('status')!='scheduled':say('Surveillance annulee.');return
+                if s.get('token')!=token or s.get('status')!='scheduled':say('monitoring_cancelled');return
                 remaining=target.timestamp()-time.time()
                 if remaining<=0:s['status']='stopping';atomic(state_path(),s);break
             if initial:initial=False;notice('Fin de la partie a '+target.strftime('%H:%M')+'. Sauvegarde automatique ensuite.')
@@ -488,9 +491,9 @@ def session_worker(token):
             time.sleep(min(1,max(0.05,target.timestamp()-time.time())))
         with lock('maintenance',True):config_check();docker_start();stop();backup(False,True)
         with lock('session',True):s=state();s.update(status='stopped',finished_at=stamp());atomic(state_path(),s)
-        say('Serveur arrete et sauvegarde terminee. Il reste eteint.')
+        say('server_stopped_and_backup_completed_it_remains_off')
     except Exception as exc:
-        say('ECHEC : '+str(exc));diagnostic()
+        say('failure_error', error=exc);diagnostic()
         with lock('session',True):
             s=state()
             if s.get('token')==token:s.update(status='failed',error=str(exc));atomic(state_path(),s)
@@ -501,13 +504,13 @@ def session_worker(token):
             except subprocess.TimeoutExpired:awake.kill()
 
 def show_game(cfg):
-    say('Triche : '+('activee' if cfg['cheats'] else 'desactivee'))
-    if cfg['cheats']:say('ATTENTION : la triche desactive les succes du monde ; off ensuite ne garantit pas leur retour.')
-    say('Inventaire conserve : '+('oui' if cfg['keep_inventory'] else 'non'))
-    say('Difficulte : '+{'easy':'facile','peaceful':'paisible','normal':'normale','hard':'difficile'}[cfg['difficulty']])
-    say('Sommeil : '+('un joueur suffit (0 %)' if cfg['sleep_percent']==0 else str(cfg['sleep_percent'])+' %'))
-    say('Mode par defaut : '+{'survival':'survie','creative':'creatif','adventure':'aventure'}[cfg['gamemode']])
-    say('Choix memorises, pas une mesure du monde en direct.')
+    say('cheats_value', value=tr('enabled' if cfg['cheats'] else 'disabled'))
+    if cfg['cheats']:say('warning_cheats_disable_world_achievements_turning_them_off_later_does_not_guarantee_achievements_will_return')
+    say('keep_inventory_value', value=tr('yes' if cfg['keep_inventory'] else 'no'))
+    say('difficulty_value', value=tr({'easy':'easy','peaceful':'peaceful','normal':'normal','hard':'hard'}[cfg['difficulty']]))
+    say('sleep_rule_value', value=tr('one_player_is_enough_0' if cfg['sleep_percent']==0 else 'percent', percent=cfg['sleep_percent']))
+    say('default_game_mode_value', value=tr({'survival':'survival','creative':'creative','adventure':'adventure'}[cfg['gamemode']]))
+    say('choices_are_saved_they_are_not_live_world_measurements')
 def game_action(action):
     if action=='game-show':show_game(settings()['game']);return
     with lock('maintenance'):
@@ -521,12 +524,12 @@ def game_action(action):
         elif action=='game-defaults':cfg=dict(GAME_DEFAULTS)
         elif action=='gamemode-all':
             mode=gamemode(os.getenv('MODE',''));config_check();docker_start();send('gamemode '+mode+' @a')
-            say('Commande pour les joueurs presents uniquement. Le mode par defaut ne change pas.');return
+            say('command_applies_only_to_online_players_the_default_game_mode_is_unchanged');return
         elif action!='game-apply':raise RuntimeError('Reglage inconnu.')
         update_settings(game=cfg);ensure_game_overlay();show_game(cfg)
         if action=='game-apply':config_check();docker_start();up()
         elif docker_reachable() and (ROOT/'.env').exists() and running():config_check();up()
-        else:say('Choix prets pour le prochain demarrage avec bedrock-family server start.')
+        else:say('choices_are_ready_for_the_next_bedrock_family_server_start')
 
 def setup():
     if os.getenv('EULA','').upper()!='TRUE':raise RuntimeError('Lire les conditions Minecraft puis ajouter EULA=TRUE si vous les acceptez.')
@@ -536,14 +539,14 @@ def setup():
         if not (ROOT/'.env').exists():values['BEDROCK_VERSION']='LATEST'
         env_update(values);update_settings();ensure_game_overlay()
         for name in ('data','backups','logs'):(ROOT/name).mkdir(exist_ok=True)
-    say('Configuration prete. Attention : triche activee par defaut, succes du monde desactives. Lancer bedrock-family check puis bedrock-family server start.')
+    say('configuration_is_ready_cheats_are_enabled_by_default_disabling_achievements_run_bedrock_family_check_then_bedrock_family_server_start')
 
 def main():
     action=sys.argv[1] if len(sys.argv)>1 else 'help'
     if action=='_session-worker':session_worker(sys.argv[2]);return
     if action not in PUBLIC_ACTIONS:raise RuntimeError('Commande inconnue. Utiliser bedrock-family --help.')
     if action=='help':
-        language = 'fr' if os.getenv('LANGUAGE', 'en').lower() == 'fr' else 'en'
+        language = current_language()
         say((ROOT / 'docs' / language / 'commands.txt').read_text(encoding='utf-8'))
         return
     if action=='setup':setup();return
@@ -554,15 +557,15 @@ def main():
         if action=='session-default':cfg=update_settings(stop_at=clock(os.getenv('TIME','')))
         elif action=='session-default-reset':cfg=update_settings(stop_at='19:00')
         else:cfg=settings()
-        say('Heure habituelle : '+cfg['stop_at']+'. Les parties deja programmees ne changent pas.');return
+        say('usual_end_time_time_already_scheduled_games_are_unchanged', time=cfg['stop_at']);return
     if action=='session-status':
-        s=state();say('Etat : '+s.get('status','aucun'));say('Fermeture prevue : '+s.get('deadline','aucune'))
-        if s.get('status') in ('starting','scheduled') and not alive(s.get('pid')):say('ATTENTION : surveillance inactive. Reprogrammer la partie.')
-        if s.get('error'):say('Erreur : '+s['error'])
+        s=state();say('status_status', status=tr(s.get('status','no_status')));say('scheduled_shutdown_deadline', deadline=tr(s.get('deadline','no_deadline')))
+        if s.get('status') in ('starting','scheduled') and not alive(s.get('pid')):say('warning_schedule_monitoring_is_inactive_schedule_the_game_again')
+        if s.get('error'):say('error_error', error=s['error'])
         return
     if action=='session-cancel':cancel_session();return
     if action=='session-logs':
-        p=ROOT/'logs'/'session.log';say('\n'.join(p.read_text(encoding='utf-8',errors='replace').splitlines()[-100:]) if p.exists() else 'Aucun message.');return
+        p=ROOT/'logs'/'session.log';say('\n'.join(p.read_text(encoding='utf-8',errors='replace').splitlines()[-100:]) if p.exists() else 'no_messages');return
     if action in ('edit','edit-env','open-data','open-backups','allowlist-edit'):
         p=ROOT/{'edit':'compose.yaml','edit-env':'.env','open-data':'data','open-backups':'backups','allowlist-edit':'data/allowlist.json'}[action]
         if action=='allowlist-edit' and not p.exists() and (ROOT/'data').is_dir():atomic(p,[])
@@ -578,7 +581,7 @@ def main():
         say(str({k:v for k,v in os.environ.items() if k.startswith('DOCKER_')}));return
     if action=='docker-start':docker_start();return
     config_check();docker_start()
-    if action in ('check','config'):dc(['config','--quiet']);say('Configuration valide.');return
+    if action in ('check','config'):dc(['config','--quiet']);say('configuration_is_valid');return
     if action=='status':dc(['ps','-a'],True);return
     if action in ('logs','logs-once'):
         args=['logs','--tail='+str(int(os.getenv('TAIL','100'))),'bedrock']
@@ -591,12 +594,12 @@ def main():
         if not value:raise RuntimeError('Exemple : bedrock-family server console "say Bonjour".')
         send(value);return
     if action=='players':
-        for e in connected():say(e['name']+' : '+e['xuid'])
+        for e in connected():say('name_xuid', **e)
         return
     if action=='xuids':
         cid=running()
         if not cid:raise RuntimeError('Demarrer le serveur ou utiliser bedrock-family server logs --once.')
-        say('\n'.join(x for x in logs(cid).splitlines() if 'xuid' in x.lower()) or 'Aucun identifiant.');return
+        say('\n'.join(x for x in logs(cid).splitlines() if 'xuid' in x.lower()) or 'no_identifiers_found');return
     with lock('maintenance'):
         if action in ('up','start','apply'):up()
         elif action=='session':start_session()
@@ -613,15 +616,15 @@ def main():
         elif action in ('update','update-server'):
             cancel_session(True);backup();dc(['pull','bedrock'],True,timeout=None)
             ensure_game_overlay();dc(['up','-d','--force-recreate','bedrock'],True,latest=action=='update-server');wait_ready()
-            if action=='update-server':env_update({'BEDROCK_VERSION':'EXISTING'});say('Version telechargee conservee. Verifier les appareils iOS et Windows.')
-        elif action=='version-pin':env_update({'BEDROCK_VERSION':'EXISTING'});say('Version installee conservee aux prochains demarrages.')
+            if action=='update-server':env_update({'BEDROCK_VERSION':'EXISTING'});say('downloaded_version_pinned_check_ios_and_windows_devices')
+        elif action=='version-pin':env_update({'BEDROCK_VERSION':'EXISTING'});say('installed_version_pinned_for_future_starts')
         elif action.startswith('allowlist-'):access(action[len('allowlist-'):])
         else:raise RuntimeError('Commande inconnue.')
 
 if __name__=='__main__':
     try:main()
-    except KeyboardInterrupt:say('Interrompu. Le serveur n est pas automatiquement arrete.');sys.exit(130)
+    except KeyboardInterrupt:say('interrupted_server_not_stopped_automatically');sys.exit(130)
     except (RuntimeError,OSError,ValueError,KeyError,tarfile.TarError,subprocess.TimeoutExpired) as exc:
-        say('ERREUR : '+str(exc))
+        say('error_message', message=exc)
         if len(sys.argv)>1 and sys.argv[1] not in ('setup','help','session-default','session-default-show','session-default-reset'):diagnostic()
         sys.exit(1)

@@ -1,4 +1,4 @@
-"""Tests locaux : bibliotheque standard, aucun moteur Docker ou reseau."""
+"""Local tests: standard library only; no Docker engine or network access."""
 import contextlib
 import datetime as dt
 import io
@@ -16,10 +16,32 @@ from unittest import mock
 PACKAGE=Path(__file__).resolve().parents[1]
 REAL_ENV=dict(os.environ)
 sys.path.insert(0,str(PACKAGE))
-from bedrock_family import manage as m
+from bedrock_family import i18n, manage as m
+
+class LanguageTests(unittest.TestCase):
+    def test_locale_detection_normalizes_region_and_encoding(self):
+        self.assertEqual(i18n.default_language({'LC_ALL':'fr_CA.UTF-8'}),'fr')
+        self.assertEqual(i18n.default_language({'LANGUAGE':'de:en_US.UTF-8','LANG':'fr_FR.UTF-8'}),'en')
+
+    def test_catalog_formats_translated_messages(self):
+        i18n.set_language('en')
+        self.addCleanup(i18n.set_language,'fr')
+        self.assertEqual(i18n.tr('default_world_name',name='Famille'),'Default world: Famille')
+
+    def test_catalogs_use_shared_english_snake_case_keys(self):
+        catalogs=[
+            json.loads((PACKAGE/'bedrock_family'/'locales'/(language+'.json')).read_text(encoding='utf-8'))
+            for language in i18n.available_languages()
+        ]
+        keys=set(catalogs[0])
+        for catalog in catalogs:
+            self.assertEqual(set(catalog),keys)
+            for key in catalog:
+                self.assertRegex(key,r'[a-z][a-z0-9]*(?:_[a-z0-9]+)*')
 
 class LocalTests(unittest.TestCase):
     def setUp(self):
+        i18n.set_language('fr')
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup);self.root=Path(temp.name)
         patch=mock.patch.object(m,'ROOT',self.root);patch.start();self.addCleanup(patch.stop)
         patch=mock.patch.dict(os.environ,{},clear=True);patch.start();self.addCleanup(patch.stop)
@@ -115,8 +137,8 @@ class LocalTests(unittest.TestCase):
         candidates=[{'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'},{'ip':'10.0.0.5','interface':'en5','type':'Ethernet'}]
         with mock.patch.object(m,'ipv4_candidates',return_value=candidates),mock.patch.object(m.sys,'stdin',types.SimpleNamespace(isatty=lambda:True)),mock.patch('builtins.input',return_value='2'),mock.patch.object(m,'say') as say:
             self.assertEqual(m.select_lan_ip(''),'10.0.0.5')
-        self.assertTrue(any('Wi-Fi (en0)' in call.args[0] for call in say.call_args_list))
-        self.assertTrue(any('Ethernet (en5)' in call.args[0] for call in say.call_args_list))
+        self.assertTrue(any(call.kwargs.get('type')=='Wi-Fi' and call.kwargs.get('interface')=='en0' for call in say.call_args_list))
+        self.assertTrue(any(call.kwargs.get('type')=='Ethernet' and call.kwargs.get('interface')=='en5' for call in say.call_args_list))
     def test_multiple_ipv4_addresses_require_explicit_choice_without_terminal(self):
         candidates=[{'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'},{'ip':'10.0.0.5','interface':'en5','type':'Ethernet'}]
         with mock.patch.object(m,'ipv4_candidates',return_value=candidates),mock.patch.object(m.sys,'stdin',types.SimpleNamespace(isatty=lambda:False)),mock.patch.object(m,'say'),self.assertRaisesRegex(RuntimeError,'setup --ip'):
@@ -137,8 +159,9 @@ class LocalTests(unittest.TestCase):
         self.seed();m.env_update({'LEVEL_NAME':'Famille'})
         worlds=self.root/'data'/'worlds';(worlds/'Famille').mkdir(parents=True);(worlds/'Survie 2').mkdir()
         with mock.patch.object(m,'say') as say:m.worlds()
+        default_call=next(call for call in say.call_args_list if call.args[0]=='default_world_name')
+        self.assertEqual(default_call.kwargs['name'],'Famille')
         messages=[call.args[0] for call in say.call_args_list]
-        self.assertIn('Monde par defaut : Famille',messages)
         self.assertIn(' * Famille',messages);self.assertIn('   Survie 2',messages)
     def test_world_default_updates_env_only_for_existing_world(self):
         self.seed();world=(self.root/'data'/'worlds'/'Survie 2');world.mkdir(parents=True)
@@ -332,13 +355,34 @@ class FakeCliTests(unittest.TestCase):
     def setUp(self):
         tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup);base=Path(tmp.name);self.root=base/'minecraft-famille'
         binary=base/'bin';binary.mkdir();file=binary/'docker';file.write_text(STUB);file.chmod(0o755)
-        self.env=dict(REAL_ENV);self.env.update(PATH=str(binary)+os.pathsep+REAL_ENV['PATH'],FAKE_STATE=str(base/'state.json'),PYTHONDONTWRITEBYTECODE='1',PYTHONPATH=str(PACKAGE))
+        self.env=dict(REAL_ENV);self.env.update(PATH=str(binary)+os.pathsep+REAL_ENV['PATH'],FAKE_STATE=str(base/'state.json'),PYTHONDONTWRITEBYTECODE='1',PYTHONPATH=str(PACKAGE),BEDROCK_FAMILY_LANGUAGE='fr')
         result=self.cli('init',str(self.root));self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         result=self.cli('-C',str(self.root),'setup','--accept-eula','--ip','192.168.1.50');self.assertEqual(result.returncode,0,result.stdout+result.stderr)
     def cli(self,*args,env=None):return subprocess.run([sys.executable,'-m','bedrock_family',*args],capture_output=True,text=True,env=env or self.env,timeout=25,cwd=PACKAGE)
     def test_help_and_version_work_without_a_server(self):
         result=self.cli('--help');self.assertEqual(result.returncode,0,result.stderr);self.assertIn('bedrock-family',result.stdout);self.assertIn('world',result.stdout)
         result=self.cli('--version');self.assertEqual(result.returncode,0,result.stderr);self.assertIn('0.1.0',result.stdout)
+    def test_help_and_messages_follow_selected_language(self):
+        english_env=dict(self.env,BEDROCK_FAMILY_LANGUAGE='en')
+        result=self.cli('--help',env=english_env)
+        self.assertIn('Manage a family Minecraft Bedrock server.',result.stdout)
+        self.assertIn('optional arguments',result.stdout)
+        result=self.cli('--language','fr','--help',env=english_env)
+        self.assertIn('Gérer un serveur Minecraft Bedrock familial.',result.stdout)
+        self.assertIn('options facultatives',result.stdout)
+        result=self.cli('--language','fr','players','set-mode','invalid')
+        self.assertIn('choix invalide',result.stderr)
+        result=self.cli('-C',str(self.root),'world','list',env=english_env)
+        self.assertIn('Default world: Famille (not created yet)',result.stdout)
+        result=self.cli('-C',str(self.root),'world','list')
+        self.assertIn('Monde par defaut : Famille (pas encore cree)',result.stdout)
+        locale_env=dict(self.env)
+        locale_env.pop('BEDROCK_FAMILY_LANGUAGE')
+        locale_env['LC_ALL']='fr_CA.UTF-8'
+        result=self.cli('--help',env=locale_env)
+        self.assertIn('Gérer un serveur Minecraft Bedrock familial.',result.stdout)
+        result=self.cli('help',env=english_env)
+        self.assertIn('Manage a family Minecraft Bedrock server.',result.stdout)
     def test_init_preserves_existing_server_configuration(self):
         compose=self.root/'compose.yaml';original=compose.read_text()
         result=self.cli('init',str(self.root));self.assertEqual(result.returncode,0,result.stdout+result.stderr)
