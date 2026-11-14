@@ -14,12 +14,12 @@ La triche est aussi activée. Elle désactive les succès du monde ; la désacti
 
 ## Commencer
 
-Installez Docker Desktop, Python et pipx sur le Mac, puis suivez le [tutoriel d’installation](docs/fr/installation.md). Il explique chaque étape, sans demander de connaître Git ou Docker.
+Installez Docker Desktop, Python et uv sur le Mac, puis suivez le [tutoriel d’installation](docs/fr/installation.md). Il explique chaque étape, sans demander de connaître Git ou Docker.
 
 Vous avez déjà préparé le Mac ? Installez le CLI, créez un dossier de serveur, puis démarrez une partie :
 
 ```sh
-pipx install minecraft-bedrock-family
+uv venv && uv pip install --python ./.venv/bin/python .
 bedrock-family init ~/MinecraftFamille
 cd ~/MinecraftFamille
 bedrock-family setup

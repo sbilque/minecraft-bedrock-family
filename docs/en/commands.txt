@@ -1,7 +1,7 @@
 MINECRAFT BEDROCK FAMILY
 
 Install the CLI:
-  pipx install minecraft-bedrock-family
+  uv venv && uv pip install --python ./.venv/bin/python .
   bedrock-family init ~/MinecraftFamily
   cd ~/MinecraftFamily
   bedrock-family setup --accept-eula

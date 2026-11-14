@@ -1,27 +1,27 @@
 MINECRAFT EN FAMILLE
 
 Installation du CLI :
-  pipx install minecraft-bedrock-family
+  uv venv && uv pip install --python ./.venv/bin/python .
   bedrock-family init ~/MinecraftFamille
   cd ~/MinecraftFamille
   bedrock-family setup --accept-eula
 
-L’aide complète est disponible avec bedrock-family --help. La langue suit les préférences du terminal.
+L'aide complète est disponible avec bedrock-family --help. La langue suit les préférences du terminal.
 Pour la choisir ponctuellement : bedrock-family --language en --help.
 Pour la conserver dans le terminal : export BEDROCK_FAMILY_LANGUAGE=en (ou fr).
-Toutes les commandes suivantes s’exécutent depuis le dossier serveur.
+Toutes les commandes suivantes s'exécutent depuis le dossier serveur.
 
 SERVEUR ET PARTIES
   bedrock-family server start
-    Démarrer le serveur sans programmer d’arrêt.
+    Démarrer le serveur sans programmer d'arrêt.
   bedrock-family session start
-    Démarrer et programmer la fin à l’heure habituelle.
+    Démarrer et programmer la fin à l'heure habituelle.
   bedrock-family session start --until 21:00
     Choisir une heure de fin pour cette partie seulement.
   bedrock-family session status
-    Vérifier l’heure prévue et la surveillance.
+    Vérifier l'heure prévue et la surveillance.
   bedrock-family session cancel
-    Annuler l’heure sans arrêter le serveur.
+    Annuler l'heure sans arrêter le serveur.
   bedrock-family session stop
     Arrêter maintenant, sauvegarder et rester éteint.
   bedrock-family session logs
@@ -31,111 +31,111 @@ SERVEUR ET PARTIES
   bedrock-family server restart
     Redémarrer en gardant les fichiers du monde.
   bedrock-family server down
-    Retirer les conteneurs ; conserver le monde.
+    Supprimer les conteneurs; garder le monde.
   bedrock-family server status
-    Voir l’état du serveur.
+    Voir l'état du serveur.
   bedrock-family server logs [--once] [--tail 100]
-    Suivre les messages, ou les afficher une seule fois.
-  bedrock-family server console "say Bonjour"
-    Envoyer une commande au jeu.
+    Suivre les messages ou les montrer une seule fois.
+  bedrock-family server console "say Hello"
+    Envoyer une commande de jeu.
 
 HEURE DE FIN
   bedrock-family session default show
-    Voir l’heure habituelle.
+    Afficher l'heure habituelle.
   bedrock-family session default set 20:30
-    Mémoriser une nouvelle heure habituelle.
+    Enregistrer une nouvelle heure habituelle.
   bedrock-family session default reset
     Revenir à 19 h.
 
 MONDES
   bedrock-family world list
-    Afficher les mondes disponibles et celui par défaut.
+    Afficher les mondes disponibles et le défaut.
   bedrock-family world use "Nom du monde"
     Choisir un monde existant pour le prochain démarrage.
   bedrock-family world create "Nouveau monde"
     Créer et démarrer un nouveau monde.
-    Si un serveur est déjà actif, confirmer le redémarrage avec --yes.
+    Si un serveur tourne, confirmez son redémarrage avec --yes.
 
-RÈGLES DU JEU
+RÈGLES DE JEU
   bedrock-family settings show
-    Voir les règles et l’heure habituelle.
+    Afficher les règles enregistrées et l'heure de fin habituelle.
   bedrock-family settings set cheats off
-    Activer/désactiver la triche : on ou off.
+    Activer ou désactiver la triche : on ou off.
   bedrock-family settings set keep-inventory on
-    Garder l’inventaire à la mort : on ou off.
-  bedrock-family settings set difficulty facile
-    paisible, facile, normale ou difficile.
+    Conserver l'inventaire à la mort : on ou off.
+  bedrock-family settings set difficulty easy
+    paisible, facile, normal ou dur.
   bedrock-family settings set sleep 50
-    Pourcentage de joueurs au lit : 0 à 100.
+    Pourcentage de joueurs allités : 0 à 100.
   bedrock-family settings set sleep-one
-    Un joueur au lit suffit.
-  bedrock-family settings set gamemode survie
-    Mode par défaut : survie, creatif ou aventure.
+    Un seul joueur au lit suffit.
+  bedrock-family settings set gamemode survival
+    Mode par défaut : survie, création ou aventure.
   bedrock-family settings set finish-time 20:30
-    Définir l’heure habituelle de fin.
+    Fixer l'heure de fin habituelle.
   bedrock-family players set-mode creative
-    Changer le mode des joueurs présents seulement.
+    Ne changer que les joueurs connectés.
   bedrock-family settings apply
-    Démarrer et appliquer les règles mémorisées.
+    Démarrer et appliquer les règles enregistrées.
   bedrock-family settings reset
-    Remettre les règles du jeu aux valeurs familiales.
+    Restaurer les réglages de jeu familiaux par défaut.
 
 JOUEURS ET ACCÈS
   bedrock-family players list
-    Voir qui joue.
+    Afficher qui est connecté.
   bedrock-family players xuids
-    Retrouver les identifiants dans les messages conservés.
+    Trouver les identifiants des joueurs dans les messages conservés.
   bedrock-family access preview
-    Voir les présents sans modifier la liste.
+    Afficher les joueurs connectés sans changer la liste.
   bedrock-family access sync
-    Inscrire les présents sans retirer les absents déjà autorisés.
+    Inscrire les joueurs connectés; garder les inscrits absents.
   bedrock-family access show
-    Voir les personnes inscrites.
+    Afficher les joueurs inscrits.
   bedrock-family access enable
-    Réserver les entrées aux inscrits.
+    Restreindre l'entrée aux joueurs inscrits.
   bedrock-family access disable --confirm
-    Ouvrir temporairement les entrées.
+    Ouvrir temporairement l'entrée.
   bedrock-family access remove "Nom du joueur"
-    Retirer un nom ou un XUID sans effacer ses constructions.
+    Supprimer un nom ou un XUID; garder leurs constructions.
   bedrock-family access edit
-    Modifier manuellement la liste.
+    Éditer la liste manuellement.
   bedrock-family access reload
-    Vérifier et recharger la liste modifiée.
+    Valider et recharger la liste éditée.
 
 SAUVEGARDES
   bedrock-family backup create
-    Sauvegarder puis retrouver l’état allumé/arrêté initial.
+    Sauvegarder, puis restaurer l'état initial (marche/arrêt).
   bedrock-family backup list
     Lister les archives.
   bedrock-family backup restore "backups/archive.tar.gz" --confirm
-    Restaurer un monde ; conserver réglages et accès actuels.
+    Restaurer un monde; garder les réglages et l'accès actuels.
   bedrock-family open backups
     Ouvrir le dossier des sauvegardes.
 
 ENTRETIEN
   bedrock-family init [DOSSIER]
-    Créer un dossier serveur ou adopter un dossier existant sans l’écraser.
+    Créer ou adopter un dossier de serveur sans écraser les fichiers présents.
   bedrock-family setup [--accept-eula] [--ip ADRESSE]
-    Accepter les conditions et détecter ou choisir l’IPv4.
+    Accepter les conditions et détecter ou choisir l'adresse IPv4.
   bedrock-family check
     Valider la configuration.
   bedrock-family doctor
-    Vérifier Docker et l’environnement.
+    Vérifier Docker et l'environnement.
   bedrock-family update
-    Sauvegarder puis actualiser selon le choix de version.
+    Sauvegarder et mettre à jour selon le choix de version enregistré.
   bedrock-family update --server
-    Télécharger la dernière version de Bedrock après sauvegarde.
+    Sauvegarder et télécharger le dernier serveur Bedrock.
   bedrock-family version pin
     Garder la version téléchargée aux prochains démarrages.
   bedrock-family version pull
-    Télécharger seulement l’image Docker.
+    Télécharger uniquement l'image Docker.
   bedrock-family open data
-    Ouvrir les données du monde ; ne pas effacer ce dossier.
+    Ouvrir les données du monde; ne pas supprimer ce dossier.
   bedrock-family open settings
-    Modifier les réglages avancés du serveur.
+    Éditer les réglages avancés du serveur.
   bedrock-family open network
-    Modifier l’adresse et la version du serveur.
+    Éditer l'adresse et la version du serveur.
 
-Triche activée par défaut : les succès du monde sont désactivés.
-0 % de sommeil : un joueur doit quand même être au lit.
+La triche est activée par défaut et désactive les succès du monde.
+À 0 %, dormir nécessite encore un joueur au lit.
 Les commandes make sont réservées aux tests et aux contributions.

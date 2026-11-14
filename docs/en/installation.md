@@ -6,22 +6,14 @@ The server runs on the Mac with an Apple Silicon chip. Players join with Minecra
 
 ## 1. Prepare the Mac
 
-You need Docker Desktop for Apple Silicon, Python 3.9 or newer, and a tool to install the CLI: pipx, or uv if you prefer it. A current Python release is recommended.
+You need Docker Desktop for Apple Silicon, Python 3.9 or newer, and a tool to install and run the CLI. A current Python release is recommended.
 
 - [Install Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/), then open it.
 - [Install Python for macOS](https://www.python.org/downloads/macos/) if needed.
-- Install a package manager to run the CLI without make: [pipx](https://pipx.pypa.io/stable/installation/) or [uv](https://docs.astral.sh/uv/getting-started/installation/).
+- Install [uv](https://docs.astral.sh/uv/getting-started/installation/). You can also use plain pip; both options are described below.
 - Open Terminal: this is where you will type the commands.
 
 Check the tools:
-
-```sh
-python3 --version
-pipx --version
-docker compose version
-```
-
-If you chose uv, check it instead of pipx:
 
 ```sh
 python3 --version
@@ -29,37 +21,58 @@ uv --version
 docker compose version
 ```
 
-## 2. Install the CLI and prepare a server folder
-
-Install the published package, then initialize the folder that will hold the world, settings and backups:
+If you prefer to use pip instead of uv, check Python and pip:
 
 ```sh
-pipx install minecraft-bedrock-family
+python3 --version
+python3 -m pip --version
+docker compose version
+```
+
+## 2. Install the CLI and prepare a server folder
+
+The published package is not on PyPI yet, so install the CLI from a copy of this repository. Choose uv or pip.
+
+**With uv**
+
+`uv` installs CLI apps into its own tool environment, so a source install needs a small isolated environment first. Run these commands inside the folder where you checked out the source:
+
+```sh
+uv venv
+source .venv/bin/activate
+uv pip install .
+```
+
+`uv pip install .` builds an isolated install from the source in this folder. It uses the same local project whether it came from a download or a clone. After that, initialize the folder that will hold the world, settings and backups:
+
+```sh
 bedrock-family init ~/MinecraftFamily
 cd ~/MinecraftFamily
 ```
 
-If you prefer uv, run the same install as a uv tool (uv 1.2 and newer):
+**With pip**
+
+Use a Python interpreter that is 3.9 or newer. A `pyproject.toml` file in the source folder describes the project and its entry point:
+
+```sh
+python3 -m pip install .
+```
+
+To keep the CLI in sync with the source folder (for example, after you fetch new changes), install it editable instead:
+
+```sh
+python3 -m pip install --editable .
+```
+
+Both the uv and the pip installs register the same `bedrock-family` command. From the same terminal, use `bedrock-family` for every command.
+
+When the published package is released on PyPI, you can also install it as a uv tool:
 
 ```sh
 uv tool install minecraft-bedrock-family
 ```
 
-The `uv tool` command is uv's own replacement for pipx. If you have an older uv, use the pipx API that uv ships:
-
-```sh
-uv pipx install minecraft-bedrock-family
-```
-
-The uv-installed CLI works like the pipx one. From the same terminal, use `bedrock-family` for every command. To switch back to a plain pipx install later, run `pipx uninstall minecraft-bedrock-family` then `uv tool uninstall minecraft-bedrock-family`.
-
-To install the CLI straight from a copy of this repository, without going through the PyPI package, give the command a path to the folder where you checked out the source. uv copies the project from that folder and installs it:
-
-```sh
-uv pipx install --from /path/to/minecraft-bedrock-family minecraft-bedrock-family
-```
-
-This uses the same local project whether it came from a download or a clone. It builds an isolated install from that source, so it never changes anything already installed from PyPI. You can also use the uv tool command for this. If you cannot use uv or a cloned copy, the folder you ran `bedrock-family init` in is enough to manage your server.
+This registers the same `bedrock-family` command.
 
 The CLI follows the terminal's language preferences. To choose a language for one command, put the option before the command: `bedrock-family --language en --help`. To set it for the terminal session, run `export BEDROCK_FAMILY_LANGUAGE=en` (or `fr`).
 
@@ -122,5 +135,15 @@ The first line saves the finishing time. The second starts today's game. After r
 Keep the Mac awake and Docker open. You may close Terminal, not your macOS login session. After a Mac restart, check the server and schedule a new finishing time.
 
 To stop now and back up: `bedrock-family session stop`.
+
+## 7. Uninstall the CLI
+
+To remove the CLI, uninstall the package you used to install it:
+
+- Install with a uv tool: `uv tool uninstall minecraft-bedrock-family`
+- Install with pip: `python3 -m pip uninstall minecraft-bedrock-family`
+- Install with a source venv (`uv venv` + `uv pip install .`): run `uv pip uninstall minecraft-bedrock-family`, or delete the `.venv` folder in the source folder.
+
+Uninstalling the CLI does not remove the server folder you created with `bedrock-family init` (`~/MinecraftFamily` or similar). The world, settings and backups stay there. To remove them too, delete that folder yourself.
 
 [Use the server](guide.md) · [Need help?](troubleshooting.md)

@@ -14,12 +14,12 @@ Cheats are enabled too. This disables world achievements; turning cheats off lat
 
 ## Get started
 
-Install Docker Desktop, Python and pipx on the Mac, then follow the [installation tutorial](docs/en/installation.md). It walks through each step without requiring Git or Docker knowledge.
+Install Docker Desktop, Python and uv on the Mac, then follow the [installation tutorial](docs/en/installation.md). It walks through each step without requiring Git or Docker knowledge.
 
 Already set up the Mac? Install the CLI, create a server folder and start a game:
 
 ```sh
-pipx install minecraft-bedrock-family
+uv venv && uv pip install --python ./.venv/bin/python .
 bedrock-family init ~/MinecraftFamily
 cd ~/MinecraftFamily
 bedrock-family setup
