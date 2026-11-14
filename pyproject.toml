@@ -29,3 +29,26 @@ include = ["bedrock_family*"]
 
 [tool.setuptools.package-data]
 bedrock_family = ["templates/*.yaml", "locales/*.json"]
+
+[tool.ruff]
+line-length = 80
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "D", "RET", "SIM", "UP"]
+ignore = [
+  "D203",
+  "D212",
+  "D213",
+  "D401",
+  "D404",
+  "E402",
+  "E501",
+  "RET505",
+  "SIM108",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_manage.py" = ["D"]
+"scripts/manage.py" = ["D"]
+"bedrock_family/manage.py" = ["D103"]

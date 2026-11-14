@@ -1,14 +1,15 @@
 """Runtime translations for the command-line interface."""
+
 import json
 import os
 from importlib.resources import files
-
 
 _language = None
 _messages = {}
 
 
 def available_languages():
+    """Return the locale identifiers available in the packaged catalogs."""
     directory = files("bedrock_family").joinpath("locales")
     languages = sorted(
         entry.name[:-5]
@@ -21,7 +22,10 @@ def available_languages():
 
 
 def _match_language(value, languages):
-    normalized = value.strip().split("@", 1)[0].split(".", 1)[0].replace("-", "_")
+    """Resolve a locale string against the available language identifiers."""
+    normalized = (
+        value.strip().split("@", 1)[0].split(".", 1)[0].replace("-", "_")
+    )
     names = {language.casefold(): language for language in languages}
     if normalized.casefold() in names:
         return names[normalized.casefold()]
@@ -30,6 +34,7 @@ def _match_language(value, languages):
 
 
 def default_language(environ=None):
+    """Select the most appropriate interface language from the environment."""
     environ = os.environ if environ is None else environ
     languages = available_languages()
     preferences = (
@@ -48,18 +53,24 @@ def default_language(environ=None):
 
 
 def language_from_args(args, environ=None):
+    """Extract the CLI language override from the argument list when present."""
     if args is not None:
         for index, value in enumerate(args):
             if value == "--language" and index + 1 < len(args):
                 requested = args[index + 1]
-                return _match_language(requested, available_languages()) or default_language(environ)
+                return _match_language(
+                    requested, available_languages()
+                ) or default_language(environ)
             if value.startswith("--language="):
                 requested = value.partition("=")[2]
-                return _match_language(requested, available_languages()) or default_language(environ)
+                return _match_language(
+                    requested, available_languages()
+                ) or default_language(environ)
     return default_language(environ)
 
 
 def set_language(language):
+    """Load the translation catalog for the given language identifier."""
     global _language, _messages
     languages = available_languages()
     if language not in languages:
@@ -68,24 +79,31 @@ def set_language(language):
     try:
         messages = json.loads(resource.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise RuntimeError("Catalogue de langue invalide : " + language) from exc
+        raise RuntimeError(
+            "Catalogue de langue invalide : " + language
+        ) from exc
     if not isinstance(messages, dict) or any(
         not isinstance(key, str) or not isinstance(value, str)
         for key, value in messages.items()
     ):
-        raise RuntimeError("Le catalogue de langue doit associer des textes à des textes : " + language)
+        raise RuntimeError(
+            "Le catalogue de langue doit associer des textes à des textes : "
+            + language
+        )
     _language = language
     _messages = messages
     return language
 
 
 def current_language():
+    """Return the active interface language, initializing it on first access."""
     if _language is None:
         set_language(default_language())
     return _language
 
 
 def tr(message, **values):
+    """Return the translated text for a message key and format it if needed."""
     if _language is None:
         set_language(default_language())
     translated = _messages.get(message, message)
