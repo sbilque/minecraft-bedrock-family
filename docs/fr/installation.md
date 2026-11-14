@@ -35,16 +35,16 @@ make verify
 
 Ce contrôle ne lance pas de partie. Ne remplacez jamais un dossier qui contient déjà votre monde sans l’avoir sauvegardé.
 
-## 3. Noter l’adresse du Mac et démarrer
+## 3. Détecter l’adresse du Mac et démarrer
 
-Ouvrez Réglages Système > Réseau > connexion utilisée > Détails > TCP/IP. Notez l’adresse IPv4. Si possible, demandez à la box de toujours donner cette adresse au Mac.
+Lisez les [conditions Minecraft](https://www.minecraft.net/eula) : `EULA=TRUE` signifie que vous les acceptez. `make setup` détecte l’adresse IPv4 du Mac. Si plusieurs connexions sont disponibles, il affiche leur type (par exemple Wi-Fi ou Ethernet) et vous demande laquelle les joueurs utiliseront. Connectez les appareils des joueurs au même réseau que cette connexion. Si possible, demandez à la box de toujours donner la même adresse au Mac.
 
-Dans l’exemple suivant, remplacez `192.168.1.50` par cette adresse. Lisez les [conditions Minecraft](https://www.minecraft.net/eula) : `EULA=TRUE` signifie que vous les acceptez.
+Vous pouvez aussi indiquer directement une adresse si vous savez laquelle choisir. Par exemple : `LAN_IP=192.168.1.50`. Cette valeur remplace la détection.
 
 Le projet active la triche par défaut : les succès du monde sont désactivés. Gardez une sauvegarde avant d’utiliser un monde existant.
 
 ```sh
-make setup LAN_IP=192.168.1.50 EULA=TRUE
+make setup EULA=TRUE
 make check
 make up
 ```
@@ -58,7 +58,7 @@ Connectez l’appareil au même réseau local que le Mac. Ouvrez Minecraft Bedro
 | Champ | Valeur |
 |---|---|
 | Nom | Minecraft Family |
-| Adresse | L’adresse IPv4 du Mac |
+| Adresse | L’adresse IPv4 affichée par `make setup` |
 | Port | 19132 |
 
 Utilisez un compte Microsoft distinct par joueur. Pour les enfants, autorisez le multijoueur dans les réglages du compte Xbox/Microsoft.

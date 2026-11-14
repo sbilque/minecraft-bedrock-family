@@ -131,6 +131,56 @@ def ipv4(value):
     except ValueError:raise RuntimeError('Utiliser l adresse IPv4 locale du Mac.')
     if ip.is_loopback or ip.is_unspecified or ip.is_multicast:raise RuntimeError('Adresse locale du Mac attendue, pas localhost.')
     return str(ip)
+
+def ipv4_candidates():
+    ports=raw(['networksetup','-listallhardwareports']).stdout
+    types={};port=None
+    for line in ports.splitlines():
+        if line.startswith('Hardware Port: '):port=line.split(':',1)[1].strip()
+        elif line.startswith('Device: ') and port:
+            types[line.split(':',1)[1].strip()]=port;port=None
+    candidates=[];seen=set();interface=None;active=False
+    for line in raw(['ifconfig','-a']).stdout.splitlines():
+        header=re.match(r'^(\S+): flags=\d+<([^>]*)>',line)
+        if header:
+            interface=header.group(1);active='UP' in header.group(2).split(',')
+            continue
+        address=re.match(r'\s+inet\s+(\S+)',line)
+        if interface and active and address:
+            try:ip=ipaddress.IPv4Address(address.group(1))
+            except ValueError:continue
+            if ip.is_loopback or ip.is_unspecified or ip.is_multicast or ip.is_link_local:continue
+            key=(interface,str(ip))
+            if key not in seen:
+                seen.add(key);kind=types.get(interface)
+                if not kind:
+                    if interface.startswith('utun'):kind='VPN'
+                    elif interface.startswith(('bridge','vmnet','vmenet')):kind='interface virtuelle'
+                    elif interface.startswith('awdl'):kind='Apple Wireless Direct Link'
+                    elif interface.startswith('en'):kind='Ethernet ou Wi-Fi'
+                    else:kind='interface '+interface
+                candidates.append({'ip':str(ip),'interface':interface,'type':kind})
+    return candidates
+
+def select_lan_ip(configured):
+    if configured:return ipv4(configured.strip())
+    candidates=ipv4_candidates()
+    if not candidates:raise RuntimeError('Aucune adresse IPv4 locale utilisable detectee. Verifier la connexion du Mac ou relancer avec LAN_IP=adresse.')
+    if len(candidates)==1:
+        candidate=candidates[0]
+        say('Adresse IPv4 detectee : '+candidate['ip']+' ('+candidate['type']+', '+candidate['interface']+').')
+        return candidate['ip']
+    say('Plusieurs adresses IPv4 ont ete detectees :')
+    for index,candidate in enumerate(candidates,1):
+        say('  '+str(index)+') '+candidate['type']+' ('+candidate['interface']+') : '+candidate['ip'])
+    if not sys.stdin.isatty():
+        raise RuntimeError('Choisir une adresse avec LAN_IP=... puis relancer make setup.')
+    try:choice=input('Numero de la connexion utilisee par les joueurs : ').strip()
+    except EOFError:raise RuntimeError('Choix interrompu. Relancer make setup dans un Terminal interactif.')
+    if not choice.isdigit() or not 1<=int(choice)<=len(candidates):
+        raise RuntimeError('Choix invalide. Relancer make setup et saisir un numero affiche.')
+    return candidates[int(choice)-1]['ip']
+
 def config_check():
     cfg=env_read();ipv4(cfg.get('LAN_IP',''));settings()
     if cfg.get('EULA','').upper()!='TRUE':raise RuntimeError('Lire les conditions Minecraft et accepter avec EULA=TRUE lors de make setup.')
@@ -479,8 +529,8 @@ def game_action(action):
         else:say('Choix prets pour le prochain demarrage avec Make.')
 
 def setup():
-    ip=ipv4(os.getenv('LAN_IP','').strip())
     if os.getenv('EULA','').upper()!='TRUE':raise RuntimeError('Lire les conditions Minecraft puis ajouter EULA=TRUE si vous les acceptez.')
+    ip=select_lan_ip(os.getenv('LAN_IP','').strip())
     with lock('maintenance'):
         values={'LAN_IP':ip,'EULA':'TRUE'}
         if not (ROOT/'.env').exists():values['BEDROCK_VERSION']='LATEST'

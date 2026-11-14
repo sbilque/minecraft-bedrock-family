@@ -4,8 +4,9 @@ In Terminal: cd ~/minecraft-bedrock-family
 Players: Minecraft Bedrock on iOS or Windows 10/11, on the same local network.
 
 INSTALL
-  make setup LAN_IP=192.168.1.50 EULA=TRUE
-    Use the Mac's local address. Read and accept Minecraft terms first.
+  make setup EULA=TRUE
+    Detect the Mac's IPv4 address and accept Minecraft terms.
+    If several connections exist, choose Wi-Fi, Ethernet or another.
   make check
     Check settings and Docker.
 

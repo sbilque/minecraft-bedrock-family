@@ -95,6 +95,37 @@ class LocalTests(unittest.TestCase):
         self.assertEqual(m.env_read()['BEDROCK_VERSION'],'EXISTING')
         self.assertEqual(m.env_read()['LAN_IP'],'192.168.1.70')
         self.assertTrue((self.root/'compose.game.json').exists())
+    def test_setup_detects_single_ipv4_address(self):
+        self.seed();os.environ['EULA']='TRUE'
+        candidate={'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'}
+        with mock.patch.object(m,'ipv4_candidates',return_value=[candidate]),mock.patch.object(m,'docker_start',side_effect=AssertionError('Docker must not run')):m.setup()
+        self.assertEqual(m.env_read()['LAN_IP'],'192.168.1.70')
+    def test_ipv4_candidates_show_connection_type_and_ignore_inactive_or_local_interfaces(self):
+        ports='Hardware Port: Wi-Fi\nDevice: en0\n\nHardware Port: Ethernet\nDevice: en1\n'
+        interfaces=('lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST>\n'
+                    ' inet 127.0.0.1 netmask 0xff000000\n'
+                    'en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST>\n'
+                    ' inet 192.168.1.70 netmask 0xffffff00\n'
+                    'en1: flags=8862<BROADCAST,SMART,SIMPLEX,MULTICAST>\n'
+                    ' inet 192.168.1.71 netmask 0xffffff00\n'
+                    'utun4: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST>\n'
+                    ' inet 10.8.0.2 --> 10.8.0.2 netmask 0xffffffff\n')
+        with mock.patch.object(m,'raw',side_effect=[types.SimpleNamespace(stdout=ports),types.SimpleNamespace(stdout=interfaces)]):
+            candidates=m.ipv4_candidates()
+        self.assertEqual(candidates,[{'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'},{'ip':'10.8.0.2','interface':'utun4','type':'VPN'}])
+    def test_multiple_ipv4_addresses_can_be_selected_interactively(self):
+        candidates=[{'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'},{'ip':'10.0.0.5','interface':'en5','type':'Ethernet'}]
+        with mock.patch.object(m,'ipv4_candidates',return_value=candidates),mock.patch.object(m.sys,'stdin',types.SimpleNamespace(isatty=lambda:True)),mock.patch('builtins.input',return_value='2'),mock.patch.object(m,'say') as say:
+            self.assertEqual(m.select_lan_ip(''),'10.0.0.5')
+        self.assertTrue(any('Wi-Fi (en0)' in call.args[0] for call in say.call_args_list))
+        self.assertTrue(any('Ethernet (en5)' in call.args[0] for call in say.call_args_list))
+    def test_multiple_ipv4_addresses_require_explicit_choice_without_terminal(self):
+        candidates=[{'ip':'192.168.1.70','interface':'en0','type':'Wi-Fi'},{'ip':'10.0.0.5','interface':'en5','type':'Ethernet'}]
+        with mock.patch.object(m,'ipv4_candidates',return_value=candidates),mock.patch.object(m.sys,'stdin',types.SimpleNamespace(isatty=lambda:False)),mock.patch.object(m,'say'),self.assertRaisesRegex(RuntimeError,'LAN_IP='):
+            m.select_lan_ip('')
+    def test_explicit_ipv4_skips_detection(self):
+        with mock.patch.object(m,'ipv4_candidates',side_effect=AssertionError('Detection should not run')):
+            self.assertEqual(m.select_lan_ip('192.168.1.70'),'192.168.1.70')
     def test_eula_required(self):
         os.environ['LAN_IP']='192.168.1.50'
         with self.assertRaises(RuntimeError):m.setup()

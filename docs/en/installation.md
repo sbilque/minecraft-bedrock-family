@@ -35,16 +35,16 @@ make verify
 
 This check does not start a game. Never replace a folder containing an existing world without a backup.
 
-## 3. Find the Mac's address and start
+## 3. Detect the Mac's address and start
 
-Open System Settings > Network > active connection > Details > TCP/IP. Note the IPv4 address. If possible, ask the router to keep giving the Mac this address.
+Read the [Minecraft terms](https://www.minecraft.net/eula): `EULA=TRUE` means you accept them. `make setup` detects the Mac's IPv4 address. If several connections are available, it shows their type (for example, Wi-Fi or Ethernet) and asks which one the players will use. Connect players' devices to the same network as that connection. If possible, ask the router to keep giving the Mac the same address.
 
-Replace `192.168.1.50` below with that address. Read the [Minecraft terms](https://www.minecraft.net/eula): `EULA=TRUE` means you accept them.
+You can also provide a known address directly, for example `LAN_IP=192.168.1.50`. This skips detection.
 
 The project enables cheats by default, disabling world achievements. Keep a backup before using an existing world.
 
 ```sh
-make setup LAN_IP=192.168.1.50 EULA=TRUE
+make setup EULA=TRUE
 make check
 make up
 ```
@@ -58,7 +58,7 @@ Connect the device to the same local network as the Mac. Open Minecraft Bedrock,
 | Field | Value |
 |---|---|
 | Name | Minecraft Family |
-| Address | The Mac's IPv4 address |
+| Address | The IPv4 address shown by `make setup` |
 | Port | 19132 |
 
 Use a separate Microsoft account for each player. For children, allow multiplayer in the account's Xbox/Microsoft settings.
