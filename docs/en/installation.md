@@ -6,11 +6,11 @@ The server runs on the Mac with an Apple Silicon chip. Players join with Minecra
 
 ## 1. Prepare the Mac
 
-You need Docker Desktop for Apple Silicon, Python 3.9 or newer, and pipx. A current Python release is recommended.
+You need Docker Desktop for Apple Silicon, Python 3.9 or newer, and a tool to install the CLI: pipx, or uv if you prefer it. A current Python release is recommended.
 
 - [Install Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/), then open it.
 - [Install Python for macOS](https://www.python.org/downloads/macos/) if needed.
-- [Install pipx](https://pipx.pypa.io/stable/installation/) to install the CLI without make.
+- Install a package manager to run the CLI without make: [pipx](https://pipx.pypa.io/stable/installation/) or [uv](https://docs.astral.sh/uv/getting-started/installation/).
 - Open Terminal: this is where you will type the commands.
 
 Check the tools:
@@ -18,6 +18,14 @@ Check the tools:
 ```sh
 python3 --version
 pipx --version
+docker compose version
+```
+
+If you chose uv, check it instead of pipx:
+
+```sh
+python3 --version
+uv --version
 docker compose version
 ```
 
@@ -30,6 +38,28 @@ pipx install minecraft-bedrock-family
 bedrock-family init ~/MinecraftFamily
 cd ~/MinecraftFamily
 ```
+
+If you prefer uv, run the same install as a uv tool (uv 1.2 and newer):
+
+```sh
+uv tool install minecraft-bedrock-family
+```
+
+The `uv tool` command is uv's own replacement for pipx. If you have an older uv, use the pipx API that uv ships:
+
+```sh
+uv pipx install minecraft-bedrock-family
+```
+
+The uv-installed CLI works like the pipx one. From the same terminal, use `bedrock-family` for every command. To switch back to a plain pipx install later, run `pipx uninstall minecraft-bedrock-family` then `uv tool uninstall minecraft-bedrock-family`.
+
+To install the CLI straight from a copy of this repository, without going through the PyPI package, give the command a path to the folder where you checked out the source. uv copies the project from that folder and installs it:
+
+```sh
+uv pipx install --from /path/to/minecraft-bedrock-family minecraft-bedrock-family
+```
+
+This uses the same local project whether it came from a download or a clone. It builds an isolated install from that source, so it never changes anything already installed from PyPI. You can also use the uv tool command for this. If you cannot use uv or a cloned copy, the folder you ran `bedrock-family init` in is enough to manage your server.
 
 The CLI follows the terminal's language preferences. To choose a language for one command, put the option before the command: `bedrock-family --language en --help`. To set it for the terminal session, run `export BEDROCK_FAMILY_LANGUAGE=en` (or `fr`).
 
