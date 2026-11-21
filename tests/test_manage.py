@@ -459,6 +459,19 @@ class LocalTests(unittest.TestCase):
             "Parent:123",
         )
 
+    def test_remove_player_without_player_name_raises(self):
+        self.seed()
+        m.atomic(
+            self.root / "data" / "allowlist.json",
+            [{"name": "Parent", "xuid": "123"}],
+        )
+        os.environ.pop("PLAYER", None)
+        with (
+            mock.patch.object(m, "running", return_value=""),
+            self.assertRaises(RuntimeError),
+        ):
+            m.access("remove")
+
     def test_manual_import_does_not_resurrect_deleted_players(self):
         self.seed()
         m.atomic(self.root / "data" / "allowlist.json", [])
