@@ -694,6 +694,21 @@ class LocalTests(unittest.TestCase):
             (self.root / "data" / "original.txt").read_text(), original
         )
 
+    def test_rotate_session_log_truncates(self):
+        logs = self.root / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        log = logs / "session.log"
+        log.write_text("\n".join("line " + str(i) for i in range(1200)))
+        m.rotate_session_log(max_lines=100)
+        lines = log.read_text().splitlines()
+        self.assertEqual(len(lines), 100)
+        self.assertTrue(lines[0].startswith("line 1100"))
+
+    def test_rotate_session_log_ignores_missing_dir(self):
+        self.assertFalse((self.root / "logs").exists())
+        m.rotate_session_log(max_lines=100)
+        self.assertFalse((self.root / "logs").exists())
+
     def test_cleanup_removes_orphan_temp_files(self):
         import os
         active_pid = os.getpid()

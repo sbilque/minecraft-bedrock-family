@@ -169,6 +169,30 @@ def cleanup_temp_files(exclude_pid=None):
                         orphan.unlink()
 
 
+SESSION_LOG_MAX_LINES = 1000
+
+
+def rotate_session_log(max_lines=SESSION_LOG_MAX_LINES):
+    """Bound the growth of the session log.
+
+    A long-lived worker can fill disk over time. Only the most recent
+    ``max_lines`` lines are kept; the ``data`` folder is never touched.
+    """
+    folder = ROOT / "logs"
+    if not folder.is_dir():
+        return
+    log = folder / "session.log"
+    try:
+        with log.open("r", encoding="utf-8", errors="replace") as stream:
+            lines = stream.read().splitlines()
+    except OSError:
+        return
+    if len(lines) > max_lines:
+        truncated = "\n".join(lines[-max_lines:]) + "\n"
+        with log.open("w", encoding="utf-8") as stream:
+            stream.write(truncated)
+
+
 @contextlib.contextmanager
 def lock(name, wait=False):
     """Protect a project-scoped resource with a file lock."""
@@ -1263,6 +1287,7 @@ def session_worker(token):
                     "finish_the_game_at_time",
                     time=target.strftime("%H:%M"),
                 )
+                rotate_session_log()
             actual = target.timestamp() - time.time()
             due = [n for n in pending if actual <= n]
             if due and actual > 0:
