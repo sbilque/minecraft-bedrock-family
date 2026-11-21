@@ -107,7 +107,9 @@ def write_atomic_file(path, value, json_mode=True):
     """Write JSON or text data to disk without corrupting the file."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_name(path.name + ".tmp-" + str(os.getpid()))
+    own = str(os.getpid())
+    cleanup_temp_files(exclude_pid=own)
+    temp = path.with_name(path.name + ".tmp-" + own)
     temp.write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n"
         if json_mode
@@ -125,6 +127,46 @@ def read_json_file(path, default=None):
         if path.exists()
         else default
     )
+
+
+def _pid_alive(pid):
+    """Return True if a pid is currently running."""
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def cleanup_temp_files(exclude_pid=None):
+    """Remove stale temporary files left behind by a crashed process.
+
+    Only ``.tmp-<pid>`` files whose pid is no longer running, and
+    ``.partial`` backups whose completed ``.tar.gz`` already exists, are
+    removed. Active or in-flight files are never touched, and no state or
+    backup folder is created when absent.
+    """
+    for folder in (ROOT / ".state", ROOT / "backups"):
+        if not folder.is_dir():
+            continue
+        for orphan in folder.glob("*"):
+            if not orphan.is_file():
+                continue
+            if orphan.suffix == ".partial":
+                base = orphan.name[: -len(".partial")]
+                if (folder / base).exists():
+                    with contextlib.suppress(OSError):
+                        orphan.unlink()
+            elif ".tmp-" in orphan.name:
+                marker = ".tmp-"
+                index = orphan.name.rfind(marker)
+                try:
+                    pid = int(orphan.name[index + len(marker) :])
+                except ValueError:
+                    continue
+                if not _pid_alive(pid):
+                    with contextlib.suppress(OSError):
+                        orphan.unlink()
 
 
 @contextlib.contextmanager
@@ -997,6 +1039,7 @@ def backup(restart=True, already_stopped=False):
         + ".tar.gz"
     )
     part = dest.with_suffix(dest.suffix + ".partial")
+    cleanup_temp_files()
     try:
         with tarfile.open(part, "w:gz") as tar:
             for name in (

@@ -694,6 +694,38 @@ class LocalTests(unittest.TestCase):
             (self.root / "data" / "original.txt").read_text(), original
         )
 
+    def test_cleanup_removes_orphan_temp_files(self):
+        import os
+        active_pid = os.getpid()
+        (self.root / ".state").mkdir(parents=True, exist_ok=True)
+        (self.root / "backups").mkdir(parents=True, exist_ok=True)
+        for pid, content in [(999999, "dead"), (active_pid, "mine")]:
+            (self.root / ".state" / f"thing.tmp-{pid}").write_text(content)
+        (self.root / "backups" / "minecraft-good-1.0.tar.gz").write_text("done")
+        (self.root / "backups" / "minecraft-good-1.0.tar.gz.partial").write_text("x")
+
+        m.cleanup_temp_files()
+
+        self.assertFalse(
+            (self.root / ".state" / "thing.tmp-999999").exists()
+        )
+        self.assertTrue(
+            (self.root / ".state" / f"thing.tmp-{active_pid}").exists()
+        )
+        self.assertFalse(
+            (self.root / "backups" / "minecraft-good-1.0.tar.gz.partial").exists()
+        )
+        self.assertTrue(
+            (self.root / "backups" / "minecraft-good-1.0.tar.gz").exists()
+        )
+
+    def test_cleanup_no_folders_no_errors(self):
+        self.assertFalse((self.root / ".state").exists())
+        self.assertFalse((self.root / "backups").exists())
+        m.cleanup_temp_files()
+        self.assertFalse((self.root / ".state").exists())
+        self.assertFalse((self.root / "backups").exists())
+
     def test_backup_failure_does_not_restart_a_stopped_server(self):
         self.seed()
         with (
