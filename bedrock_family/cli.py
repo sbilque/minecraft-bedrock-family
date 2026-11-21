@@ -238,7 +238,6 @@ def initialize(directory):
     if compose.exists():
         if not compose.is_file():
             raise RuntimeError(tr("compose_yaml_exists_but_is_not_a_file"))
-            print(tr("existing_server_folder_preserved_no_files_were_replaced"))
     else:
         template = files("bedrock_family").joinpath("templates", "compose.yaml")
         compose.write_text(

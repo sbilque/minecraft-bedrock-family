@@ -49,6 +49,7 @@
   "choose_value_on_or_value_off": "Choisir VALUE=on ou VALUE=off.",
   "level_easy_peaceful_normal_or_hard": "LEVEL=facile, paisible, normale ou difficile.",
   "mode_survival_creative_or_adventure": "MODE=survie, creatif ou aventure.",
+  "expected_a_positive_integer_for_the_log_tail_length": "Un entier positif est requis pour le nombre de lignes affichées.",
   "percent_must_be_an_integer_from_0_to_100": "PERCENT doit etre un entier de 0 a 100.",
   "expected_a_time_in_hh_mm_format_for_example_20_30": "Heure attendue : HH:MM, par exemple 20:30.",
   "invalid_time_use_00_00_through_23_59": "Heure invalide : de 00:00 a 23:59.",

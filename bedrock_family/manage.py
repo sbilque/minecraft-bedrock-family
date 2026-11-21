@@ -20,6 +20,18 @@ from pathlib import Path
 
 from .i18n import current_language, tr
 
+# Environment keys that this project manages in its ``.env`` file.
+# Any other key is rejected by ``env_update`` to prevent silently writing
+# unknown variables into the shared ``.env`` configuration file.
+ALLOWED_ENV_KEYS = (
+    "LAN_IP",
+    "EULA",
+    "BEDROCK_VERSION",
+    "LEVEL_NAME",
+    "ALLOW_LIST_USERS",
+    "ALLOW_LIST",
+)
+
 ROOT = Path(
     os.getenv("BEDROCK_FAMILY_HOME", Path(__file__).resolve().parents[1])
 ).resolve()
@@ -484,6 +496,9 @@ def env_read():
 
 
 def env_update(values):
+    for key in values:
+        if key not in ALLOWED_ENV_KEYS:
+            raise RuntimeError(tr("unknown_environment_variable_name", name=key))
     p = ROOT / ".env"
     lines = p.read_text(encoding="utf-8").splitlines() if p.exists() else []
     remaining = dict(values)
@@ -497,6 +512,16 @@ def env_update(values):
             result.append(line)
     result.extend(k + "=" + str(v) for k, v in remaining.items())
     atomic(p, "\n".join(result) + "\n", False)
+
+
+def validate_tail(value):
+    """Validate the ``--tail`` value and return it as a positive integer."""
+    text = str(value or "").strip()
+    if not re.fullmatch(r"\d+", text) or int(text) < 0:
+        raise RuntimeError(
+            tr("expected_a_positive_integer_for_the_log_tail_length")
+        )
+    return str(int(text))
 
 
 def ipv4(value):
@@ -1592,7 +1617,7 @@ def main():
     if action in ("logs", "logs-once"):
         args = [
             "logs",
-            "--tail=" + str(int(os.getenv("TAIL", "100"))),
+            "--tail=" + validate_tail(os.getenv("TAIL", "100")),
             "bedrock",
         ]
         if action == "logs":
