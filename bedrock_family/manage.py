@@ -926,7 +926,7 @@ def access(action):
     if action == "remove":
         name = os.getenv("PLAYER", "").strip()
         if not name:
-            tr("expected_player_player_name")
+            raise RuntimeError(tr("expected_player_player_name"))
         matches = [
             e
             for e in entries
