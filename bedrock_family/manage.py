@@ -6,6 +6,7 @@ import datetime as dt
 import fcntl
 import ipaddress
 import json
+import math
 import os
 import re
 import shutil
@@ -246,10 +247,10 @@ def parse_duration(value):
     segments = re.findall(r"(\d+(?:\.\d+)?)\s*(h|m)?", text)
     if not re.fullmatch(r"(?:\d+(?:\.\d+)?\s*(?:h|m)?)+", text):
         raise ValueError(tr("invalid_duration_format"))
-    total = 0
+    total = 0.0
     seen_unit = set()
     for amount, unit in segments:
-        number = int(float(amount))
+        value = float(amount)
         if not unit:
             if seen_unit:
                 raise ValueError(tr("invalid_duration_format"))
@@ -257,11 +258,11 @@ def parse_duration(value):
             if unit in seen_unit:
                 raise ValueError(tr("invalid_duration_format"))
             seen_unit.add(unit)
-            number *= 60 if unit == "h" else 1
-        total += number
+            value *= 60 if unit == "h" else 1
+        total += value
     if total <= 0:
         raise ValueError(tr("duration_must_be_a_positive_amount_of_time"))
-    return int(total)
+    return int(math.ceil(total))
 
 
 def relative_deadline(minutes, now=None):

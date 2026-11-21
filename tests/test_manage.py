@@ -800,6 +800,13 @@ class LocalTests(unittest.TestCase):
         self.assertEqual(m.parse_duration("2H30M"), 150)
         self.assertEqual(m.parse_duration("1 h 30 m"), 90)
 
+    def test_parse_duration_rolls_minutes_up(self):
+        self.assertEqual(m.parse_duration("1.5h"), 90)
+        self.assertEqual(m.parse_duration("1.9h"), 114)
+        self.assertEqual(m.parse_duration("1h0.5m"), 61)
+        self.assertEqual(m.parse_duration("45.5m"), 46)
+        self.assertEqual(m.parse_duration("1h30m"), 90)
+
     def test_parse_duration_invalid(self):
         for value in ["", "0", "0m", "-5", "m", "h", "1x", "1h1m1m", "abc"]:
             with self.subTest(value=value), self.assertRaises(ValueError):
