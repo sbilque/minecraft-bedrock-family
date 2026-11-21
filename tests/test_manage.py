@@ -870,6 +870,7 @@ class FakeCliTests(unittest.TestCase):
             env=env or self.env,
             timeout=25,
             cwd=PACKAGE,
+            stdin=subprocess.DEVNULL,
         )
 
     def test_help_and_version_work_without_a_server(self):
