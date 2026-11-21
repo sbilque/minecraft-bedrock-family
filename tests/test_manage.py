@@ -656,6 +656,44 @@ class LocalTests(unittest.TestCase):
             m.load(self.root / "data" / "allowlist.json")[0]["name"], "B"
         )
 
+    def test_restore_rolls_back_on_extraction_failure(self):
+        self.seed()
+        original = "original world"
+        (self.root / "data" / "original.txt").write_text(original)
+        m.atomic(
+            self.root / "data" / "allowlist.json",
+            [{"name": "A", "xuid": "123"}],
+        )
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w:gz") as tar:
+            data_info = tarfile.TarInfo("data")
+            data_info.type = tarfile.DIRTYPE
+            tar.addfile(data_info)
+            member = tarfile.TarInfo("data/restore.txt")
+            member.type = tarfile.REGTYPE
+            member.size = len("restored")
+            tar.addfile(member)
+        bad_tar = self.root / "bad.tar.gz"
+        with open(bad_tar, "wb") as out:
+            out.write(stream.getvalue())
+
+        with (
+            mock.patch.object(m, "stop"),
+            mock.patch.object(m, "up"),
+            mock.patch.object(
+                m.shutil,
+                "copyfileobj",
+                side_effect=OSError("simulated disk full"),
+            ),
+        ):
+            os.environ.update(FILE=str(bad_tar), CONFIRM="yes")
+            with self.assertRaises(OSError):
+                m.restore()
+        self.assertTrue((self.root / "data" / "original.txt").exists())
+        self.assertEqual(
+            (self.root / "data" / "original.txt").read_text(), original
+        )
+
     def test_backup_failure_does_not_restart_a_stopped_server(self):
         self.seed()
         with (

@@ -1048,31 +1048,39 @@ def restore():
         )
     file = Path(name)
     file = file if file.is_absolute() else ROOT / file
+    backup_dir = None
     with tarfile.open(file, "r:gz") as tar:
         members = safe_members(tar)
         old_list = validate_entries(load(ROOT / "data" / "allowlist.json", []))
         cancel_session(True)
         stop()
         if (ROOT / "data").exists():
-            (ROOT / "data").rename(
-                ROOT
-                / (
-                    "data-avant-restauration-"
-                    + dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-                )
+            backup_dir = ROOT / (
+                "data-avant-restauration-"
+                + dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
             )
-        for member in members:
-            target = ROOT / member.name
-            if member.isdir():
-                target.mkdir(parents=True, exist_ok=True)
-            else:
-                target.parent.mkdir(parents=True, exist_ok=True)
-                with (
-                    tar.extractfile(member) as stream,
-                    target.open("wb") as dest,
-                ):
-                    shutil.copyfileobj(stream, dest, 1024 * 1024)
-        atomic(ROOT / "data" / "allowlist.json", old_list)
+            (ROOT / "data").rename(backup_dir)
+        try:
+            for member in members:
+                target = ROOT / member.name
+                if member.isdir():
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with (
+                        tar.extractfile(member) as stream,
+                        target.open("wb") as dest,
+                    ):
+                        shutil.copyfileobj(stream, dest, 1024 * 1024)
+            atomic(ROOT / "data" / "allowlist.json", old_list)
+        except BaseException:
+            if backup_dir is not None and backup_dir.exists():
+                if (ROOT / "data").exists():
+                    shutil.rmtree(ROOT / "data")
+                backup_dir.rename(ROOT / "data")
+            raise
+    if backup_dir is not None and backup_dir.exists():
+        shutil.rmtree(backup_dir)
     up()
     say("world_restored_current_settings_and_permissions_were_preserved")
 
